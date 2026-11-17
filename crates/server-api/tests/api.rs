@@ -2,12 +2,18 @@
 //! Defina OXID_TEST_DATABASE_URL (banco descartável) para rodar; sem ela, os testes são pulados.
 
 use futures_util::{SinkExt, StreamExt};
+use oxid_proto::voice::VoiceTokenResponse;
 use oxid_proto::{
     auth::AuthResponse,
     gateway::{ClientEvent, ServerEvent},
     user::User,
 };
-use oxid_server_common::{config::Config, db};
+use oxid_server_common::{
+    config::{Config, LiveKitConfig},
+    db,
+};
+
+const LK_SECRET: &str = "segredo-livekit-de-teste-com-32-chars!!";
 use serde_json::json;
 use tokio_tungstenite::tungstenite::Message;
 
@@ -22,6 +28,11 @@ async fn spawn() -> Option<String> {
         database_url: url,
         jwt_secret: "segredo-de-teste-com-mais-de-32-caracteres".into(),
         token_ttl_secs: 3600,
+        livekit: Some(LiveKitConfig {
+            url: "ws://localhost:7880".into(),
+            api_key: "devkey".into(),
+            api_secret: LK_SECRET.into(),
+        }),
     };
     let listener = tokio::net::TcpListener::bind(config.bind_addr)
         .await
@@ -154,4 +165,45 @@ async fn register_login_me_and_gateway() {
         next(ws.next().await.unwrap().unwrap()),
         ServerEvent::InvalidSession { .. }
     ));
+
+    // Token de voz (LiveKit)
+    let res = http
+        .post(format!("{base}/v1/voice/token"))
+        .json(&json!({"room": "sala-1"}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 401);
+    let res = http
+        .post(format!("{base}/v1/voice/token"))
+        .bearer_auth(&login.token)
+        .json(&json!({"room": "sala com espaço"}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 422);
+    let voice: VoiceTokenResponse = http
+        .post(format!("{base}/v1/voice/token"))
+        .bearer_auth(&login.token)
+        .json(&json!({"room": "sala-1"}))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(voice.url, "ws://localhost:7880");
+    let mut v = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+    v.validate_aud = false;
+    let claims = jsonwebtoken::decode::<serde_json::Value>(
+        &voice.token,
+        &jsonwebtoken::DecodingKey::from_secret(LK_SECRET.as_bytes()),
+        &v,
+    )
+    .unwrap()
+    .claims;
+    assert_eq!(claims["iss"], "devkey");
+    assert_eq!(claims["sub"], reg.user.id.to_string());
+    assert_eq!(claims["video"]["room"], "sala-1");
+    assert_eq!(claims["video"]["roomJoin"], true);
 }

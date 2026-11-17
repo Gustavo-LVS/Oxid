@@ -21,7 +21,9 @@ thiserror.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 futures-util.workspace = true
+livekit-api.workspace = true
 
 [dev-dependencies]
+jsonwebtoken.workspace = true
 tokio-tungstenite = "0.26"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }

@@ -15,6 +15,8 @@ pub enum ApiError {
     Unauthorized,
     #[error("{0} já está em uso")]
     Conflict(&'static str),
+    #[error("{0} indisponível")]
+    Unavailable(&'static str),
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -32,6 +34,7 @@ impl IntoResponse for ApiError {
             Self::InvalidCredentials => (StatusCode::UNAUTHORIZED, "invalid_credentials"),
             Self::Unauthorized => (StatusCode::UNAUTHORIZED, "unauthorized"),
             Self::Conflict(_) => (StatusCode::CONFLICT, "conflict"),
+            Self::Unavailable(_) => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
             Self::Internal(e) => {
                 tracing::error!(error = ?e, "erro interno");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal")

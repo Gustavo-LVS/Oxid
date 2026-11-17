@@ -27,3 +27,4 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 validator = { version = "0.20", features = ["derive"] }
 futures-util = "0.3"
+livekit-api = { version = "0.10", default-features = false, features = ["access-token"] }
