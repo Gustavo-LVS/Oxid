@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oxid</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Interface provisória: o design definitivo vem depois. -->
+  <section id="auth" class="auth">
+    <h1>Oxid</h1>
+    <form id="auth-form">
+      <label>Servidor da API <input name="api_url" value="http://localhost:8080" required></label>
+      <label>Usuário ou e-mail <input name="login" autocomplete="username" required></label>
+      <label class="register-only" hidden>E-mail <input name="email" type="email"></label>
+      <label>Senha <input name="password" type="password" autocomplete="current-password" required minlength="8"></label>
+      <button type="submit" id="auth-submit">Entrar</button>
+      <button type="button" id="auth-toggle" class="link">Criar conta</button>
+      <p id="auth-error" class="error" role="alert"></p>
+    </form>
+  </section>
+
+  <main id="app" class="app" hidden>
+    <nav class="servers">
+      <ul id="server-list"></ul>
+      <button id="new-server" title="Criar servidor">+</button>
+    </nav>
+    <aside class="channels">
+      <header>
+        <h2 id="server-name">Nenhum servidor</h2>
+        <button id="invite-btn" class="small" hidden>Convidar</button>
+      </header>
+      <p id="invite-code" class="invite" hidden></p>
+      <h3>Texto</h3>
+      <ul id="text-channels"></ul>
+      <h3>Voz</h3>
+      <ul id="voice-channels"></ul>
+      <footer>
+        <span id="me"></span>
+        <button id="logout" class="small">Sair</button>
+      </footer>
+    </aside>
+    <section class="content">
+      <form id="join-form" class="join">
+        <input name="code" placeholder="Código ou link de convite" required>
+        <button type="submit">Entrar no servidor</button>
+      </form>
+      <p id="status" class="status"></p>
+    </section>
+  </main>
+
+  <dialog id="server-dialog">
+    <form method="dialog" id="server-form">
+      <label>Nome do servidor <input name="name" required maxlength="100"></label>
+      <menu><button value="cancel" formnovalidate>Cancelar</button><button value="ok">Criar</button></menu>
+    </form>
+  </dialog>
+
+  <script src="main.js"></script>
+</body>
+</html>

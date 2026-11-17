@@ -1,7 +1,7 @@
 ---
 artifact_id          : w01-i01-s03-closeout
 artifact_type        : sprint_closeout
-status               : draft
+status               : closed
 context_tier         : T3
 updated_at           : 2026-11-17
 summary_budget_lines : 220
@@ -11,45 +11,43 @@ summary_budget_lines : 220
 
 ## Outcome Summary
 
-Replace with the sprint result.
+Passo 3 entregue: API de servidores, canais e convites e app Tauri 2 que faz login, lista servidores e canais, cria servidor, gera convite e entra por código ou link.
 
 ## Outcome And Learning Review
 
-- Achieved: Replace with what this sprint achieved.
-- Project improvement: Replace with how the project is better after this sprint.
-- Could be better: Replace with what could have been done better.
-- Follow-up disposition: Replace with next-route change, local follow-up, workflow-improvement candidate, or `none`.
+- Achieved: primeiro app desktop rodando de ponta a ponta contra a API.
+- Project improvement: um amigo já consegue entrar no servidor pelo convite; falta só a voz no app.
+- Could be better: a UI não tem teste automatizado versionado (o script Playwright ficou fora do repositório).
+- Follow-up disposition: integrar voz no app depois do teste ao vivo do s02; versionar testes de UI quando o design definitivo chegar.
 
 ## Forecast Delta
 
-- Planned vs actual: Replace with forecasted scope versus actual result.
-- Hidden prerequisite discovered: Replace with prerequisite, or `none`.
-- Remaining forecast impact: Replace with effect on remaining candidates.
-- Owner updates: Replace with `roadmap.md`, `index.md`, `status.md`, or `none`.
+- Planned vs actual: conforme planejado.
+- Hidden prerequisite discovered: dependências de sistema do Tauri (webkit2gtk) no Linux e no CI.
+- Remaining forecast impact: nenhum.
+- Owner updates: `roadmap.md`, `status.md`.
 
 ## Evidence
 
-Replace with `evidence/index.md` or focused evidence files.
+`evidence/index.md`.
 
 ## Validation
 
-Replace with commands, outcomes, and gate dispositions. Do not close as
-passed when required objective proof is missing, failing, stale, or only
-covered by a non-objective smoke path.
+`cargo test --workspace` (7 testes), `cargo clippy` limpo, app real sob Xvfb, fluxos de UI via Playwright.
 
 ## Broader Writebacks
 
-Record which broader artifacts changed and why, or `none`.
+README, `SOURCE_ATLAS.md`, CI (dependências do Tauri).
 
 ## Mini-Retro
 
-- Process friction: Replace with friction or `none`.
-- Evidence cost: Replace with cost or `normal`.
-- Context cost: Replace with cost or `normal`.
-- Decision latency: Replace with approval, review, or blocked-time cost, or `normal`.
-- Workflow adjustment: Replace with local adjustment, promotion candidate, or `none`.
-- Retro evidence check: Replace with objective signal, controllability, and whether this repeated from prior work.
+- Process friction: bug de CSS (`[hidden]` sobrescrito por `display: grid`) só apareceu no WebKit real; vale sempre abrir o app real.
+- Evidence cost: normal.
+- Context cost: normal.
+- Decision latency: normal.
+- Workflow adjustment: `none`.
+- Retro evidence check: sinal objetivo (screenshots e testes), controlável, não repetido.
 
 ## Handoff
 
-Replace with the next allowed action.
+s04: chat de texto via WebSocket.

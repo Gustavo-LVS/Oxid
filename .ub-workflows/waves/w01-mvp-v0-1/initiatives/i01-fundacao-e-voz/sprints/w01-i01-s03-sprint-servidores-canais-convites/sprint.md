@@ -1,7 +1,7 @@
 ---
 artifact_id          : w01-i01-s03-sprint-servidores-canais-convites
 artifact_type        : sprint_plan
-status               : active
+status               : closed
 context_tier         : T3
 updated_at           : 2026-11-17
 summary_budget_lines : 480
@@ -11,7 +11,7 @@ summary_budget_lines : 480
 
 ## Objective
 
-Passo 3 do plano: cliente Tauri com a lista de servidores e canais. Primeira fatia (feita): a API de servidores, canais e convites, com o token de voz ligado ao canal. Segunda fatia (pendente): o app Tauri consumindo essa API.
+Passo 3 do plano: cliente Tauri com a lista de servidores e canais. Primeira fatia (feita): a API de servidores, canais e convites, com o token de voz ligado ao canal. Segunda fatia (feita): o app Tauri consumindo essa API.
 
 ## Source
 
@@ -56,7 +56,7 @@ Passo 3 do plano: cliente Tauri com a lista de servidores e canais. Primeira fat
 1. Migração `servers`, `server_members`, `channels`, `invites` (feito).
 2. Rotas de servidores, canais, convites; voz por `channel_id` (feito).
 3. `ApiClient` com os novos métodos; `voice_poc` cria servidor e convite (feito, sem compilar a parte de voz).
-4. `apps/desktop` Tauri 2 com login e lista de servidores/canais (pendente).
+4. `apps/desktop` Tauri 2 com login e lista de servidores/canais (feito).
 
 ## Scope Completion Rule
 
@@ -78,20 +78,21 @@ the operator explicitly changes the objective.
 ## Execution Slices
 
 1. API (feito).
-2. Tauri (pendente).
+2. Tauri (feito).
 
 ## Validation Plan
 
 1. `cargo test --workspace` com Postgres.
 2. `cargo clippy --workspace --all-targets` sem avisos.
-3. App Tauri abrindo, logando e listando (pendente).
+3. App Tauri abrindo, logando e listando (feito sob Xvfb).
 
 ## Live Validation Matrix
 
 | Gate | Status | Command | Credentials / env | Evidence path | Pass criteria | Redaction |
 | --- | --- | --- | --- | --- | --- | --- |
 | `servers_api_e2e` | passed | `cargo test --workspace` | `OXID_TEST_DATABASE_URL` | `evidence/index.md` | teste passa | Sem segredos. |
-| `tauri_list_servers` | pending | `cargo tauri dev` | API local | `evidence/index.md` | login e lista de servidores/canais | n/a |
+| `tauri_list_servers` | passed | `cargo run -p oxid-desktop` sob Xvfb + xdotool | API local | `docs/screenshots/desktop-servidor.png` | login e lista de servidores/canais | n/a |
+| `ui_flows_playwright` | passed | script Playwright com `invoke` ligado à API real | API local | `evidence/index.md` | cadastro, criar servidor, convite, entrar por link, erros | n/a |
 
 ## User Or Operator Evidence
 

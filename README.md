@@ -43,6 +43,15 @@ API atual:
 | POST | `/v1/servers/{id}/invites` | Cria convite (`max_uses`, `expires_in_secs` opcionais) |
 | GET/POST | `/v1/invites/{code}` | Prévia do convite / aceita e entra no servidor |
 
+## App desktop (Tauri 2)
+
+Interface provisória (HTML/JS simples em `apps/desktop/ui`; o design vem depois): login e cadastro, lista de servidores e canais, criar servidor, gerar convite e entrar por código ou link.
+
+```bash
+# Linux: sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev
+cargo run -p oxid-desktop
+```
+
 ## Prova de conceito de voz (passo 2)
 
 Dois clientes entram na mesma sala via LiveKit; cada um publica um tom (no lugar do microfone) e imprime o volume de quem está ouvindo.
