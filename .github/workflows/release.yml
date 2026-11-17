@@ -1,0 +1,130 @@
+# Release do app desktop: push de uma tag vX.Y.Z (stable), vX.Y.Z-beta.N (beta)
+# ou vX.Y.Z-canary.N (canary) compila Windows, macOS e Linux, assina, publica
+# no GitHub Releases e copia o latest.json para {OXID_UPDATE_BASE}/{canal}/.
+#
+# Segredos (Settings > Secrets and variables > Actions):
+#   TAURI_SIGNING_PRIVATE_KEY, TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (tauri signer generate)
+#   APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
+#   APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID                         (opcional: assinatura/notarização macOS)
+#   WINDOWS_CERTIFICATE, WINDOWS_CERTIFICATE_PASSWORD                (opcional: .pfx em base64)
+#   R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY                          (opcional: publicar manifesto no R2)
+# Variáveis:
+#   OXID_UPDATE_BASE (ex.: https://downloads.oxid.app), OXID_UPDATER_PUBKEY,
+#   R2_ENDPOINT (https://<conta>.r2.cloudflarestorage.com), R2_BUCKET
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  channel:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.c.outputs.name }}
+    steps:
+      - id: c
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            *-canary*) echo "name=canary" >> "$GITHUB_OUTPUT" ;;
+            *-beta*)   echo "name=beta"   >> "$GITHUB_OUTPUT" ;;
+            *)         echo "name=stable" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+  build:
+    needs: channel
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    env:
+      OXID_CHANNEL: ${{ needs.channel.outputs.name }}
+      OXID_UPDATE_BASE: ${{ vars.OXID_UPDATE_BASE }}
+      OXID_UPDATER_PUBKEY: ${{ vars.OXID_UPDATER_PUBKEY }}
+      HAS_WIN_CERT: ${{ secrets.WINDOWS_CERTIFICATE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Dependências do Linux
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev libasound2-dev
+      - name: Certificado do Windows
+        if: matrix.platform == 'windows-latest' && env.HAS_WIN_CERT == 'true'
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        shell: pwsh
+        run: |
+          $pfx = "$env:RUNNER_TEMP\cert.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $pass = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pass
+          # O bundler do Tauri assina com o certificado indicado por este thumbprint.
+          $conf = "apps/desktop/src-tauri/tauri.windows.conf.json"
+          @{ bundle = @{ windows = @{ certificateThumbprint = $cert.Thumbprint; digestAlgorithm = "sha256"; timestampUrl = "http://timestamp.digicert.com" } } } | ConvertTo-Json -Depth 5 | Set-Content $conf
+      - name: Chave pública do updater no tauri.conf.json
+        shell: bash
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = "apps/desktop/src-tauri/tauri.conf.json";
+            const c = JSON.parse(fs.readFileSync(p, "utf8"));
+            c.plugins.updater.pubkey = process.env.OXID_UPDATER_PUBKEY;
+            fs.writeFileSync(p, JSON.stringify(c, null, 2));
+          '
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Oxid ${{ github.ref_name }}"
+          releaseBody: "Veja o changelog no site."
+          releaseDraft: true
+          prerelease: ${{ needs.channel.outputs.name != 'stable' }}
+          includeUpdaterJson: true
+          args: ${{ matrix.args }}
+
+  # Publica o release (sai do rascunho) e copia o latest.json para o canal.
+  publish:
+    needs: [channel, build]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CHANNEL: ${{ needs.channel.outputs.name }}
+    steps:
+      - name: Tirar release do rascunho
+        run: gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false
+      - name: Baixar latest.json
+        run: gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern latest.json
+      - name: Publicar manifesto do canal no R2
+        if: vars.R2_BUCKET != ''
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3 cp latest.json "s3://${{ vars.R2_BUCKET }}/$CHANNEL/latest.json" \
+            --endpoint-url "${{ vars.R2_ENDPOINT }}" --content-type application/json --cache-control "max-age=60"

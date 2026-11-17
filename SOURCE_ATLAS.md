@@ -31,7 +31,9 @@ Cargo workspace (Rust, edition 2024):
 - `crates/client-audio/` — `frames` (mono 48 kHz, 10 ms), `processor` (RNNoise, ativação por voz, PTT, mudo), `capture` (cpal, feature `capture`). Teste com fala real em `tests/pipeline.rs`.
 - `apps/desktop/src-tauri/` — app Tauri 2 (`oxid-desktop`); comandos em `src/lib.rs` usam `client-core`; token fica só no Rust.
 - `apps/desktop/ui/` — interface provisória em HTML/CSS/JS sem build (design definitivo depois).
-- `apps/website/` — site de download (passo 6), ainda vazio.
+- `apps/desktop/src-tauri/src/updater.rs` — atualização automática (canais, verificação a cada 6 h).
+- `apps/website/` — site de download em Astro (`src/config.ts` com repositório e API).
+- `.github/workflows/` — `ci.yml` (fmt, clippy, testes, site) e `release.yml` (build, assinatura, release, manifesto por canal).
 - `migrations/` — SQL do sqlx, aplicado ao subir a API.
 - `deploy/` — docker-compose de dev (Postgres, Redis, LiveKit).
 

@@ -41,3 +41,4 @@ dialog menu { display: flex; gap: 8px; justify-content: flex-end; padding: 0; ma
 .ptt { margin-top: auto; color: var(--muted); font-size: 12px; padding: 6px 8px; border-radius: 4px; }
 .ptt.on { background: #2e7d32; color: white; }
 .ptt kbd { font: inherit; border: 1px solid #555; border-radius: 3px; padding: 0 4px; }
+.update-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; gap: 12px; justify-content: center; align-items: center; padding: 6px; background: #2e7d32; color: white; }

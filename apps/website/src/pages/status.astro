@@ -1,0 +1,14 @@
+---
+import Base from "../layouts/Base.astro";
+import { API_URL } from "../config";
+---
+<Base title="Status">
+  <h1>Status dos serviços</h1>
+  <div class="card"><h3>API e chat</h3><p id="api">Verificando...</p></div>
+  <script define:vars={{ API_URL }}>
+    const el = document.getElementById("api");
+    fetch(`${API_URL}/health`, { cache: "no-store" })
+      .then((r) => (el.textContent = r.ok ? "Operacional" : `Instável (HTTP ${r.status})`))
+      .catch(() => (el.textContent = "Fora do ar ou inacessível"));
+  </script>
+</Base>

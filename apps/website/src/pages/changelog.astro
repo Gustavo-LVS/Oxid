@@ -1,0 +1,24 @@
+---
+import Base from "../layouts/Base.astro";
+const entries = [
+  {
+    version: "0.1.0",
+    date: "Em breve",
+    items: [
+      "Contas, servidores com canais de texto e voz, convites por link",
+      "Chat de texto em tempo real",
+      "Voz em grupo com supressão de ruído, ativação por voz e push-to-talk",
+      "Atualização automática com canais stable, beta e canary",
+    ],
+  },
+];
+---
+<Base title="Novidades">
+  <h1>Novidades</h1>
+  {entries.map((e) => (
+    <section class="card">
+      <h3>{e.version} <span class="muted">· {e.date}</span></h3>
+      <ul>{e.items.map((i) => <li>{i}</li>)}</ul>
+    </section>
+  ))}
+</Base>

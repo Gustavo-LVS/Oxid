@@ -71,6 +71,16 @@ Com `OXID_MIC=1`, o cliente usa o microfone com supressão de ruído e ativaçã
 
 Sucesso: cada terminal mostra `recebendo áudio de ...` e um volume RMS por volta de 0.2.
 
+## Release e atualização automática
+
+- Tag `vX.Y.Z` (stable), `vX.Y.Z-beta.N` ou `vX.Y.Z-canary.N` dispara `.github/workflows/release.yml`: compila Windows, macOS e Linux, assina e publica no GitHub Releases; o `latest.json` vai para `{OXID_UPDATE_BASE}/{canal}/latest.json` (Cloudflare R2).
+- O app checa atualização ao abrir e a cada 6 horas, baixa em segundo plano e mostra "Reiniciar agora".
+- Para começar: `npx @tauri-apps/cli signer generate -w oxid.key` e cadastre os segredos listados no topo do `release.yml`.
+
+## Site de download
+
+`apps/website` (Astro). Veja o README da pasta.
+
 ## Testes
 
 ```bash
