@@ -5,8 +5,10 @@
 //! imprime o volume de cada participante remoto que ela está ouvindo.
 //!
 //! Uso (em dois terminais, com usuários diferentes):
-//!   OXID_API=http://localhost:8080 OXID_LOGIN=ana OXID_PASSWORD=... OXID_ROOM=sala-1 OXID_TONE_HZ=440 \
-//!     cargo run -p oxid-client-core --example voice_poc
+//!   1. OXID_LOGIN=ana OXID_PASSWORD=... OXID_TONE_HZ=440 cargo run -p oxid-client-core --features voice --example voice_poc
+//!      -> cria um servidor e imprime um código de convite.
+//!   2. OXID_LOGIN=bia OXID_PASSWORD=... OXID_TONE_HZ=660 OXID_INVITE=<código> cargo run ... (mesmo comando)
+//!      -> entra pelo convite no mesmo canal de voz.
 
 use std::{borrow::Cow, collections::HashMap, env, f32::consts::TAU, time::Duration};
 
@@ -20,6 +22,7 @@ use oxid_client_core::{
     api::ApiClient,
     voice::{CHANNELS, SAMPLE_RATE, VoiceSession},
 };
+use oxid_proto::server::ChannelKind;
 
 fn var(name: &str, default: Option<&str>) -> anyhow::Result<String> {
     env::var(name).or_else(|_| {
@@ -34,7 +37,6 @@ async fn main() -> anyhow::Result<()> {
     let api_url = var("OXID_API", Some("http://localhost:8080"))?;
     let login = var("OXID_LOGIN", None)?;
     let password = var("OXID_PASSWORD", None)?;
-    let room = var("OXID_ROOM", Some("sala-1"))?;
     let tone_hz: f32 = var("OXID_TONE_HZ", Some("440"))?.parse()?;
 
     let mut api = ApiClient::new(api_url);

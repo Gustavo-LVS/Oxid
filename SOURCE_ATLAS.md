@@ -24,10 +24,11 @@ Module maps are routing aids, not source truth. Use them to choose files to open
 Cargo workspace (Rust, edition 2024):
 
 - `crates/proto/` — DTOs e eventos do gateway compartilhados por cliente e servidor. Mudanças aqui quebram os dois lados de propósito.
-- `crates/server-common/` — `config` (env), `db` (pool + migrações), `auth` (argon2id, JWT HS256), `telemetry`.
-- `crates/server-api/` — binário axum. Rotas em `src/routes/` (`auth`, `users`, `gateway`); testes ponta a ponta em `tests/api.rs` (precisam de `OXID_TEST_DATABASE_URL`).
+- `crates/server-common/` — `config` (env), `db` (pool + migrações; `build.rs` recompila quando `migrations/` muda), `auth` (argon2id, JWT HS256), `telemetry`.
+- `crates/server-api/` — binário axum. Rotas em `src/routes/` (`auth`, `users`, `gateway`, `voice`, `servers`, `invites`); testes ponta a ponta em `tests/api.rs` (precisam de `OXID_TEST_DATABASE_URL`).
 - `crates/server-sfu/` — reservado para SFU próprio em str0m (MVP usa LiveKit).
-- `crates/client-core/`, `crates/client-audio/` — cliente (ainda vazios).
+- `crates/client-core/` — `ApiClient` (HTTP) e `voice::VoiceSession` (feature `voice`, LiveKit; exige clang 21+). Exemplo `examples/voice_poc.rs`.
+- `crates/client-audio/` — ainda vazio (passo 5).
 - `apps/desktop/` (Tauri 2), `apps/website/` (site de download) — ainda vazios.
 - `migrations/` — SQL do sqlx, aplicado ao subir a API.
 - `deploy/` — docker-compose de dev (Postgres, Redis, LiveKit).

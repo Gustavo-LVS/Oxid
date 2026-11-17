@@ -2,9 +2,11 @@
 
 use oxid_proto::{
     auth::{ApiError, AuthResponse, LoginRequest, RegisterRequest},
+    server::{CreateInviteRequest, CreateServerRequest, Invite, Server, ServerDetail},
     voice::{VoiceTokenRequest, VoiceTokenResponse},
 };
 use serde::{Serialize, de::DeserializeOwned};
+use uuid::Uuid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ClientError {
@@ -54,8 +56,39 @@ impl ApiClient {
         Ok(res)
     }
 
-    pub async fn voice_token(&self, room: &str) -> Result<VoiceTokenResponse, ClientError> {
-        self.post("/v1/voice/token", &VoiceTokenRequest { room: room.into() })
+    pub async fn create_server(&self, name: &str) -> Result<ServerDetail, ClientError> {
+        self.post("/v1/servers", &CreateServerRequest { name: name.into() })
+            .await
+    }
+
+    pub async fn servers(&self) -> Result<Vec<Server>, ClientError> {
+        self.get("/v1/servers").await
+    }
+
+    pub async fn server(&self, id: Uuid) -> Result<ServerDetail, ClientError> {
+        self.get(&format!("/v1/servers/{id}")).await
+    }
+
+    pub async fn create_invite(
+        &self,
+        server_id: Uuid,
+        req: &CreateInviteRequest,
+    ) -> Result<Invite, ClientError> {
+        self.post(&format!("/v1/servers/{server_id}/invites"), req)
+            .await
+    }
+
+    pub async fn accept_invite(&self, code: &str) -> Result<Server, ClientError> {
+        self.post(&format!("/v1/invites/{code}"), &()).await
+    }
+
+    pub async fn voice_token(&self, channel_id: Uuid) -> Result<VoiceTokenResponse, ClientError> {
+        self.post("/v1/voice/token", &VoiceTokenRequest { channel_id })
+            .await
+    }
+
+    async fn get<R: DeserializeOwned>(&self, path: &str) -> Result<R, ClientError> {
+        self.send(self.http.get(format!("{}{path}", self.base_url)))
             .await
     }
 
@@ -64,10 +97,18 @@ impl ApiClient {
         path: &str,
         body: &B,
     ) -> Result<R, ClientError> {
-        let mut req = self
-            .http
-            .post(format!("{}{path}", self.base_url))
-            .json(body);
+        self.send(
+            self.http
+                .post(format!("{}{path}", self.base_url))
+                .json(body),
+        )
+        .await
+    }
+
+    async fn send<R: DeserializeOwned>(
+        &self,
+        mut req: reqwest::RequestBuilder,
+    ) -> Result<R, ClientError> {
         if let Some(t) = &self.token {
             req = req.bearer_auth(t);
         }

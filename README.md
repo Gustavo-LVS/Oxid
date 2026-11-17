@@ -36,7 +36,12 @@ API atual:
 | POST | `/v1/auth/login` | Login por usuário ou e-mail; devolve token |
 | GET | `/v1/users/@me` | Usuário do token (`Authorization: Bearer`) |
 | GET | `/v1/gateway` | WebSocket: Hello → Identify → Ready, heartbeat |
-| POST | `/v1/voice/token` | Token de sala de voz no LiveKit (`room`) |
+| POST | `/v1/voice/token` | Token do LiveKit para um canal de voz (`channel_id`); só membros |
+| GET/POST | `/v1/servers` | Lista meus servidores / cria (`name`), já com #geral e Geral (voz) |
+| GET | `/v1/servers/{id}` | Servidor com canais (só membros; outros recebem 404) |
+| POST | `/v1/servers/{id}/channels` | Cria canal (`name`, `kind`: `text`/`voice`); só o dono |
+| POST | `/v1/servers/{id}/invites` | Cria convite (`max_uses`, `expires_in_secs` opcionais) |
+| GET/POST | `/v1/invites/{code}` | Prévia do convite / aceita e entra no servidor |
 
 ## Prova de conceito de voz (passo 2)
 
@@ -45,9 +50,11 @@ Dois clientes entram na mesma sala via LiveKit; cada um publica um tom (no lugar
 Requisito: **clang 21 ou mais novo** (o libwebrtc pré-compilado do LiveKit exige).
 
 ```bash
-# com a API e o docker-compose rodando, crie dois usuários (ana e bia) via /v1/auth/register e depois:
+# com a API e o docker-compose rodando, crie dois usuários (ana e bia) via /v1/auth/register.
+# Terminal 1: cria um servidor e imprime OXID_INVITE=<código>
 OXID_LOGIN=ana OXID_PASSWORD=senha-forte-123 OXID_TONE_HZ=440 cargo run -p oxid-client-core --features voice --example voice_poc
-OXID_LOGIN=bia OXID_PASSWORD=senha-forte-123 OXID_TONE_HZ=660 cargo run -p oxid-client-core --features voice --example voice_poc
+# Terminal 2: entra pelo convite no mesmo canal de voz
+OXID_LOGIN=bia OXID_PASSWORD=senha-forte-123 OXID_TONE_HZ=660 OXID_INVITE=<código> cargo run -p oxid-client-core --features voice --example voice_poc
 ```
 
 Sucesso: cada terminal mostra `recebendo áudio de ...` e um volume RMS por volta de 0.2.
