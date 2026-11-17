@@ -196,3 +196,10 @@ $("join-form").addEventListener("submit", async (ev) => {
     setStatus(e);
   }
 });
+
+// ---- Push-to-talk (atalho global registrado no lado Rust) ----
+invoke("ptt_shortcut_label").then((k) => ($("ptt-key").textContent = k));
+window.__TAURI__.event.listen("ptt", ({ payload: pressed }) => {
+  $("ptt").classList.toggle("on", pressed);
+  $("ptt").firstChild.textContent = pressed ? "Falando: " : "Push-to-talk: ";
+});

@@ -28,7 +28,7 @@ Cargo workspace (Rust, edition 2024):
 - `crates/server-api/` — binário axum. Rotas em `src/routes/` (`auth`, `users`, `gateway`, `voice`, `servers`, `invites`, `messages`); fan-out de eventos em `src/hub.rs`; testes ponta a ponta em `tests/api.rs` (precisam de `OXID_TEST_DATABASE_URL`).
 - `crates/server-sfu/` — reservado para SFU próprio em str0m (MVP usa LiveKit).
 - `crates/client-core/` — `ApiClient` (HTTP), `gateway` (WebSocket com heartbeat) e `voice::VoiceSession` (feature `voice`, LiveKit; exige clang 21+). Exemplo `examples/voice_poc.rs`.
-- `crates/client-audio/` — ainda vazio (passo 5).
+- `crates/client-audio/` — `frames` (mono 48 kHz, 10 ms), `processor` (RNNoise, ativação por voz, PTT, mudo), `capture` (cpal, feature `capture`). Teste com fala real em `tests/pipeline.rs`.
 - `apps/desktop/src-tauri/` — app Tauri 2 (`oxid-desktop`); comandos em `src/lib.rs` usam `client-core`; token fica só no Rust.
 - `apps/desktop/ui/` — interface provisória em HTML/CSS/JS sem build (design definitivo depois).
 - `apps/website/` — site de download (passo 6), ainda vazio.

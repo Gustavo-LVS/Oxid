@@ -1,8 +1,10 @@
 //! Prova de conceito do passo 2: dois clientes falando via SFU.
 //!
 //! Cada instância faz login na API, pede um token de voz, entra na sala,
-//! publica um tom senoidal (no lugar do microfone, que chega no passo 5) e
-//! imprime o volume de cada participante remoto que ela está ouvindo.
+//! publica áudio e imprime o volume de cada participante remoto que ela ouve.
+//!
+//! Fonte de áudio: tom senoidal (padrão, `OXID_TONE_HZ`) ou o microfone com
+//! supressão de ruído e ativação por voz (`OXID_MIC=1`).
 //!
 //! Uso (em dois terminais, com usuários diferentes):
 //!   1. OXID_LOGIN=ana OXID_PASSWORD=... OXID_TONE_HZ=440 cargo run -p oxid-client-core --features voice --example voice_poc
@@ -50,32 +52,83 @@ async fn main() -> anyhow::Result<()> {
     let mut session = VoiceSession::connect(&creds).await?;
     println!("conectado; publicando tom de {tone_hz} Hz");
 
-    // Gera 10 ms de áudio por vez, como um microfone faria.
     let mic = session.mic.clone();
-    tokio::spawn(async move {
-        let spc = (SAMPLE_RATE / 100) as usize;
-        let mut phase = 0f32;
-        let step = TAU * tone_hz / SAMPLE_RATE as f32;
-        let mut tick = tokio::time::interval(Duration::from_millis(10));
-        loop {
-            tick.tick().await;
-            let data: Vec<i16> = (0..spc)
-                .map(|_| {
-                    phase = (phase + step) % TAU;
-                    (phase.sin() * 0.3 * i16::MAX as f32) as i16
-                })
-                .collect();
-            let frame = AudioFrame {
-                data: Cow::Owned(data),
-                sample_rate: SAMPLE_RATE,
-                num_channels: CHANNELS,
-                samples_per_channel: spc as u32,
-            };
-            if mic.capture_frame(&frame).await.is_err() {
-                break;
+    // Microfone real: captura -> RNNoise + ativação por voz -> SFU.
+    let mic_capture = if env::var("OXID_MIC").is_ok_and(|v| v == "1") {
+        use oxid_client_audio::processor::{AudioProcessor, TransmitMode};
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<[f32; 480]>(64);
+        let capture = oxid_client_audio::capture::start(move |f| {
+            let _ = tx.try_send(*f);
+        })?;
+        println!(
+            "microfone: {} (supressão de ruído + ativação por voz)",
+            capture.device_name
+        );
+        let mut processor = AudioProcessor::new(TransmitMode::default());
+        tokio::spawn(async move {
+            let mut speaking = false;
+            while let Some(f) = rx.recv().await {
+                let out = processor.process(&f);
+                if out.transmit != speaking {
+                    speaking = out.transmit;
+                    println!(
+                        "{}",
+                        if speaking {
+                            "falando..."
+                        } else {
+                            "em silêncio"
+                        }
+                    );
+                }
+                let data: Vec<i16> = out
+                    .samples
+                    .iter()
+                    .map(|s| (s * i16::MAX as f32) as i16)
+                    .collect();
+                let frame = AudioFrame {
+                    data: Cow::Owned(data),
+                    sample_rate: SAMPLE_RATE,
+                    num_channels: CHANNELS,
+                    samples_per_channel: 480,
+                };
+                if mic.capture_frame(&frame).await.is_err() {
+                    break;
+                }
             }
-        }
-    });
+        });
+        Some(capture)
+    } else {
+        None
+    };
+
+    // Sem microfone: gera 10 ms de tom por vez, como um microfone faria.
+    let mic = session.mic.clone();
+    if mic_capture.is_none() {
+        tokio::spawn(async move {
+            let spc = (SAMPLE_RATE / 100) as usize;
+            let mut phase = 0f32;
+            let step = TAU * tone_hz / SAMPLE_RATE as f32;
+            let mut tick = tokio::time::interval(Duration::from_millis(10));
+            loop {
+                tick.tick().await;
+                let data: Vec<i16> = (0..spc)
+                    .map(|_| {
+                        phase = (phase + step) % TAU;
+                        (phase.sin() * 0.3 * i16::MAX as f32) as i16
+                    })
+                    .collect();
+                let frame = AudioFrame {
+                    data: Cow::Owned(data),
+                    sample_rate: SAMPLE_RATE,
+                    num_channels: CHANNELS,
+                    samples_per_channel: spc as u32,
+                };
+                if mic.capture_frame(&frame).await.is_err() {
+                    break;
+                }
+            }
+        });
+    }
 
     let levels = std::sync::Arc::new(std::sync::Mutex::new(HashMap::<String, f32>::new()));
     let printer = levels.clone();

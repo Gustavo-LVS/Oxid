@@ -10,7 +10,13 @@ use oxid_proto::{
     message::Message,
     server::{CreateInviteRequest, Invite, Server, ServerDetail},
 };
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
+
 use tauri::{AppHandle, Emitter};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tokio::{sync::Mutex, task::JoinHandle};
 use uuid::Uuid;
 
@@ -184,8 +190,47 @@ async fn send_message(
         .map_err(msg)
 }
 
+/// Estado do push-to-talk. O `AudioProcessor` (client-audio) lê este mesmo
+/// `AtomicBool` quando a voz estiver no app.
+#[derive(Default, Clone)]
+pub struct PushToTalk(pub Arc<AtomicBool>);
+
+/// Atalho global padrão do push-to-talk: Alt+V (funciona com o jogo em foco).
+fn ptt_shortcut() -> Shortcut {
+    Shortcut::new(Some(Modifiers::ALT), Code::KeyV)
+}
+
+#[tauri::command]
+fn ptt_shortcut_label() -> String {
+    "Alt+V".into()
+}
+
 pub fn run() {
+    let ptt = PushToTalk::default();
+    let ptt_state = ptt.0.clone();
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(move |app, shortcut, event| {
+                    if shortcut != &ptt_shortcut() {
+                        return;
+                    }
+                    let pressed = event.state() == ShortcutState::Pressed;
+                    // Ignora repetição de tecla segurada.
+                    if ptt_state.swap(pressed, Ordering::Relaxed) != pressed {
+                        let _ = app.emit("ptt", pressed);
+                    }
+                })
+                .build(),
+        )
+        .setup(|app| {
+            if let Err(e) = app.global_shortcut().register(ptt_shortcut()) {
+                // Outro programa pode já usar o atalho; o app segue sem push-to-talk.
+                eprintln!("não foi possível registrar o atalho de push-to-talk: {e}");
+            }
+            Ok(())
+        })
+        .manage(ptt)
         .manage(Session::default())
         .invoke_handler(tauri::generate_handler![
             login,
@@ -197,7 +242,8 @@ pub fn run() {
             create_invite,
             accept_invite,
             list_messages,
-            send_message
+            send_message,
+            ptt_shortcut_label
         ])
         .run(tauri::generate_context!())
         .expect("falha ao iniciar o Oxid");
