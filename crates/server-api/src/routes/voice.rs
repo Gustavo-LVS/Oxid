@@ -1,25 +1,23 @@
 //! Emissão de token para salas de voz no LiveKit.
 //!
-//! Prova de conceito (passo 2): qualquer usuário autenticado entra em qualquer
-//! sala. No passo 3 a sala passa a ser um canal de voz e a permissão vem dele.
+//! A sala no SFU é o id do canal de voz; só membros do servidor entram.
 
 use std::time::Duration;
 
 use axum::{Json, extract::State};
 use livekit_api::access_token::{AccessToken, VideoGrants};
-use oxid_proto::voice::{VoiceTokenRequest, VoiceTokenResponse};
+use oxid_proto::{
+    server::ChannelKind,
+    voice::{VoiceTokenRequest, VoiceTokenResponse},
+};
 
-use super::users::find_user;
+use super::{
+    servers::{find_channel, is_member},
+    users::find_user,
+};
 use crate::{error::ApiError, extract::AuthUser, state::AppState};
 
 const VOICE_TOKEN_TTL: Duration = Duration::from_secs(10 * 60);
-
-fn valid_room(room: &str) -> bool {
-    (1..=64).contains(&room.len())
-        && room
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_'))
-}
 
 pub async fn token(
     State(state): State<AppState>,
@@ -30,11 +28,14 @@ pub async fn token(
         .livekit
         .as_ref()
         .ok_or(ApiError::Unavailable("servidor de voz"))?;
-    if !valid_room(&req.room) {
-        return Err(ApiError::Validation(
-            "sala deve ter 1 a 64 caracteres: letras, números, - ou _".into(),
-        ));
+    let channel = find_channel(&state.db, req.channel_id).await?;
+    if !is_member(&state.db, channel.server_id, user_id).await? {
+        return Err(ApiError::NotFound("canal"));
     }
+    if channel.kind != ChannelKind::Voice {
+        return Err(ApiError::Validation("o canal não é de voz".into()));
+    }
+    let room = channel.id.to_string();
     let user = find_user(&state.db, user_id)
         .await?
         .ok_or(ApiError::Unauthorized)?;
@@ -44,7 +45,7 @@ pub async fn token(
         .with_ttl(VOICE_TOKEN_TTL)
         .with_grants(VideoGrants {
             room_join: true,
-            room: req.room,
+            room: room.clone(),
             can_publish: Some(true),
             can_subscribe: Some(true),
             can_publish_data: Some(true),
@@ -55,18 +56,6 @@ pub async fn token(
     Ok(Json(VoiceTokenResponse {
         url: lk.url.clone(),
         token,
+        room,
     }))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::valid_room;
-
-    #[test]
-    fn room_names() {
-        assert!(valid_room("sala-1_teste"));
-        assert!(!valid_room(""));
-        assert!(!valid_room("com espaço"));
-        assert!(!valid_room(&"a".repeat(65)));
-    }
 }

@@ -2044,6 +2044,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.21",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -2068,6 +2069,7 @@ dependencies = [
  "livekit-api",
  "oxid-proto",
  "oxid-server-common",
+ "rand 0.9.5",
  "reqwest",
  "serde",
  "serde_json",

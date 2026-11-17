@@ -21,6 +21,7 @@ thiserror.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 futures-util.workspace = true
+rand.workspace = true
 livekit-api.workspace = true
 
 [dev-dependencies]
