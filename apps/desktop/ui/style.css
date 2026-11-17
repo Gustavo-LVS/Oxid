@@ -23,7 +23,7 @@ button.small { padding: 4px 8px; font-size: 12px; }
 .channels ul { list-style: none; margin: 0; padding: 0; }
 .channels li { padding: 4px 8px; border-radius: 4px; color: var(--muted); cursor: pointer; }
 .channels li:hover, .channels li.active { background: #3a3b42; color: var(--text); }
-.channels footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
+.channels footer { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
 .invite { background: var(--rail); padding: 6px; border-radius: 4px; user-select: all; }
 .content { padding: 24px; display: flex; flex-direction: column; min-height: 0; }
 .chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
@@ -38,3 +38,6 @@ button.small { padding: 4px 8px; font-size: 12px; }
 dialog { background: var(--panel); color: var(--text); border: 0; border-radius: 8px; }
 dialog label { display: grid; gap: 4px; }
 dialog menu { display: flex; gap: 8px; justify-content: flex-end; padding: 0; margin: 12px 0 0; }
+.ptt { margin-top: auto; color: var(--muted); font-size: 12px; padding: 6px 8px; border-radius: 4px; }
+.ptt.on { background: #2e7d32; color: white; }
+.ptt kbd { font: inherit; border: 1px solid #555; border-radius: 3px; padding: 0 4px; }

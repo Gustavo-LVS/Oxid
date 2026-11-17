@@ -1,9 +1,20 @@
 [package]
 name = "oxid-client-audio"
-description = "Áudio do cliente: captura, Opus, supressão de ruído e eco."
+description = "Áudio do cliente: captura, supressão de ruído, ativação por voz e push-to-talk."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
 [dependencies]
+nnnoiseless = "0.5"
+cpal = { version = "0.18", optional = true }
+thiserror.workspace = true
+
+[features]
+default = ["capture"]
+# Captura do microfone (cpal). No Linux exige libasound2-dev.
+capture = ["dep:cpal"]
+
+[dev-dependencies]
+hound = "3"

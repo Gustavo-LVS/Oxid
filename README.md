@@ -46,7 +46,7 @@ API atual:
 
 ## App desktop (Tauri 2)
 
-Interface provisória (HTML/JS simples em `apps/desktop/ui`; o design vem depois): login e cadastro, lista de servidores e canais, criar servidor, gerar convite, entrar por código ou link, e chat de texto em tempo real.
+Interface provisória (HTML/JS simples em `apps/desktop/ui`; o design vem depois): login e cadastro, lista de servidores e canais, criar servidor, gerar convite, entrar por código ou link, chat de texto em tempo real e push-to-talk global (Alt+V) com indicador de fala.
 
 ```bash
 # Linux: sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev
@@ -66,6 +66,8 @@ OXID_LOGIN=ana OXID_PASSWORD=senha-forte-123 OXID_TONE_HZ=440 cargo run -p oxid-
 # Terminal 2: entra pelo convite no mesmo canal de voz
 OXID_LOGIN=bia OXID_PASSWORD=senha-forte-123 OXID_TONE_HZ=660 OXID_INVITE=<código> cargo run -p oxid-client-core --features voice --example voice_poc
 ```
+
+Com `OXID_MIC=1`, o cliente usa o microfone com supressão de ruído e ativação por voz no lugar do tom (Linux: `libasound2-dev`).
 
 Sucesso: cada terminal mostra `recebendo áudio de ...` e um volume RMS por volta de 0.2.
 

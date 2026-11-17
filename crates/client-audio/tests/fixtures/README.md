@@ -1,0 +1,1 @@
+`fala-ptbr.wav`: frase sintetizada com `espeak-ng -v pt-br` ("Bora jogar uma partida agora, galera? Estou entrando no canal de voz."), 22,05 kHz mono. Usada para testar ativação por voz e supressão de ruído.

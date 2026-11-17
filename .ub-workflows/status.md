@@ -10,20 +10,20 @@ State: active. Interaction mode: `flow`.
 
 ## WIP State
 
-Sprint s02 aguardando teste de voz ao vivo na máquina do Gustavo; s03 e s04 fechados. Nenhuma discovery ativa.
+Sprints s02 e s05 aguardando testes ao vivo (voz e microfone) na máquina do Gustavo; s03 e s04 fechados. Nenhuma discovery ativa.
 
 ## Active Pointers
 
 - Wave: `waves/w01-mvp-v0-1/`
 - Initiative: `waves/w01-mvp-v0-1/initiatives/i01-fundacao-e-voz/`
-- Sprint ativo: `w01-i01-s02-sprint-voice-poc-livekit` (bloqueado em teste ao vivo)
+- Sprints ativos (bloqueados em teste ao vivo): `w01-i01-s02-sprint-voice-poc-livekit`, `w01-i01-s05-sprint-polir-audio`
 - Último fechado: `w01-i01-s04-sprint-chat-de-texto`
 - Último fechado: `w01-i01-s01-sprint-workspace-api-login`
 
 ## Blockers
 
 1. Sem repositório GitHub: o CI ainda não roda.
-2. s02: o teste ao vivo de voz precisa de uma máquina com Docker (LiveKit) e clang 21+; o ambiente de build atual não tem.
+2. s02/s05: testes ao vivo de voz precisam de máquina com Docker (LiveKit), clang 21+ e microfone.
 
 ## Wave Sequence
 
@@ -40,5 +40,5 @@ Use `SOURCE_PACK_ATLAS.md` before opening source packs.
 
 ## Next Allowed Action
 
-1. Rodar os gates ao vivo do s02 (README) e fechar o s02.
-2. s05: polir áudio (supressão de ruído, eco, push-to-talk) em `client-audio`.
+1. Gustavo roda `voice_poc` (tom e `OXID_MIC=1`) para fechar s02 e s05.
+2. s06: CI com build, assinatura, updater e site de download.
