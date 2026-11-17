@@ -47,6 +47,14 @@
         <button type="submit">Entrar no servidor</button>
       </form>
       <p id="status" class="status"></p>
+      <div id="chat" class="chat" hidden>
+        <h2 id="chat-title"></h2>
+        <ol id="messages" class="messages" aria-live="polite"></ol>
+        <form id="message-form" class="composer">
+          <input name="content" placeholder="Mensagem" autocomplete="off" maxlength="4000" required>
+          <button type="submit">Enviar</button>
+        </form>
+      </div>
     </section>
   </main>
 

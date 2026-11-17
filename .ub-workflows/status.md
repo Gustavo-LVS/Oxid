@@ -10,14 +10,14 @@ State: active. Interaction mode: `flow`.
 
 ## WIP State
 
-Sprint s02 aguardando teste de voz ao vivo na máquina do Gustavo; s03 fechado. Nenhuma discovery ativa.
+Sprint s02 aguardando teste de voz ao vivo na máquina do Gustavo; s03 e s04 fechados. Nenhuma discovery ativa.
 
 ## Active Pointers
 
 - Wave: `waves/w01-mvp-v0-1/`
 - Initiative: `waves/w01-mvp-v0-1/initiatives/i01-fundacao-e-voz/`
 - Sprint ativo: `w01-i01-s02-sprint-voice-poc-livekit` (bloqueado em teste ao vivo)
-- Último fechado: `w01-i01-s03-sprint-servidores-canais-convites`
+- Último fechado: `w01-i01-s04-sprint-chat-de-texto`
 - Último fechado: `w01-i01-s01-sprint-workspace-api-login`
 
 ## Blockers
@@ -41,4 +41,4 @@ Use `SOURCE_PACK_ATLAS.md` before opening source packs.
 ## Next Allowed Action
 
 1. Rodar os gates ao vivo do s02 (README) e fechar o s02.
-2. s04: chat de texto via WebSocket.
+2. s05: polir áudio (supressão de ruído, eco, push-to-talk) em `client-audio`.

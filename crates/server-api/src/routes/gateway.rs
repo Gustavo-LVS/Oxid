@@ -1,6 +1,6 @@
 //! WebSocket do gateway: Hello -> Identify -> Ready, com heartbeat.
 
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
 use axum::{
     extract::{
@@ -16,8 +16,10 @@ use oxid_proto::{
 };
 use uuid::Uuid;
 
+use tokio::sync::broadcast;
+
 use super::users::find_user;
-use crate::state::AppState;
+use crate::{hub::HubEvent, state::AppState};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
 const IDENTIFY_TIMEOUT: Duration = Duration::from_secs(10);
@@ -68,6 +70,21 @@ async fn session(socket: WebSocket, state: AppState) {
         Err(_) => return reject(&mut tx, "token inválido").await,
     };
     let user_id = user.id;
+    // Assina o hub antes de ler as associações, para não perder eventos no meio.
+    let mut hub = state.hub.subscribe();
+    let mut servers: HashSet<Uuid> = match sqlx::query_scalar::<_, Uuid>(
+        "SELECT server_id FROM server_members WHERE user_id = $1",
+    )
+    .bind(user_id)
+    .fetch_all(&state.db)
+    .await
+    {
+        Ok(ids) => ids.into_iter().collect(),
+        Err(e) => {
+            tracing::error!(error = ?e, "falha ao carregar servidores do usuário");
+            return reject(&mut tx, "erro interno").await;
+        }
+    };
     let ready = ServerEvent::Ready {
         user,
         session_id: Uuid::now_v7(),
@@ -77,23 +94,49 @@ async fn session(socket: WebSocket, state: AppState) {
     }
     tracing::info!(%user_id, "sessão de gateway pronta");
 
-    // Cliente que some por 2 intervalos sem heartbeat é desconectado.
-    while let Ok(Some(Ok(msg))) = tokio::time::timeout(HEARTBEAT_INTERVAL * 2, rx.next()).await {
-        match decode(&msg) {
-            Some(ClientEvent::Heartbeat) => {
-                if tx.send(encode(&ServerEvent::HeartbeatAck)).await.is_err() {
-                    break;
+    let idle = tokio::time::sleep(HEARTBEAT_INTERVAL * 2);
+    tokio::pin!(idle);
+    loop {
+        tokio::select! {
+            // Cliente que some por 2 intervalos sem heartbeat é desconectado.
+            () = &mut idle => break,
+            incoming = rx.next() => {
+                let Some(Ok(msg)) = incoming else { break };
+                idle.as_mut().reset(tokio::time::Instant::now() + HEARTBEAT_INTERVAL * 2);
+                match decode(&msg) {
+                    Some(ClientEvent::Heartbeat) => {
+                        if tx.send(encode(&ServerEvent::HeartbeatAck)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Some(ClientEvent::SetPresence { status }) => {
+                        // TODO: propagar presença aos membros dos mesmos servidores.
+                        tracing::debug!(%user_id, ?status, "presença atualizada");
+                    }
+                    Some(ClientEvent::Identify { .. }) | None => {
+                        if matches!(msg, Message::Close(_)) {
+                            break;
+                        }
+                    }
                 }
             }
-            Some(ClientEvent::SetPresence { status }) => {
-                // TODO(passo 3/4): propagar via Redis pub/sub para quem compartilha servidores.
-                tracing::debug!(%user_id, ?status, "presença atualizada");
-            }
-            Some(ClientEvent::Identify { .. }) | None => {
-                if matches!(msg, Message::Close(_)) {
+            hub_event = hub.recv() => match hub_event {
+                Ok(HubEvent::MemberJoined { server_id, user_id: joined }) if joined == user_id => {
+                    servers.insert(server_id);
+                }
+                Ok(HubEvent::ToServer { server_id, event }) if servers.contains(&server_id) => {
+                    if tx.send(encode(&event)).await.is_err() {
+                        break;
+                    }
+                }
+                Ok(_) => {}
+                Err(broadcast::error::RecvError::Lagged(n)) => {
+                    // Cliente lento demais: desconecta para ele reconectar e recarregar o histórico.
+                    tracing::warn!(%user_id, perdidos = n, "sessão atrasada, desconectando");
                     break;
                 }
-            }
+                Err(broadcast::error::RecvError::Closed) => break,
+            },
         }
     }
     tracing::info!(%user_id, "sessão de gateway encerrada");

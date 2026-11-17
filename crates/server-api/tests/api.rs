@@ -414,3 +414,196 @@ async fn servers_channels_invites_and_voice() {
     assert_eq!(claims["video"]["room"], voice_ch.to_string());
     assert_eq!(claims["video"]["roomJoin"], true);
 }
+
+type Ws =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+
+async fn gateway(addr: &str, token: &str) -> Ws {
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/v1/gateway"))
+        .await
+        .unwrap();
+    ws.next().await.unwrap().unwrap(); // Hello
+    let identify = ClientEvent::Identify {
+        token: token.into(),
+    };
+    ws.send(Message::Text(
+        serde_json::to_string(&identify).unwrap().into(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        next_event(&mut ws).await,
+        ServerEvent::Ready { .. }
+    ));
+    ws
+}
+
+async fn next_event(ws: &mut Ws) -> ServerEvent {
+    let msg = tokio::time::timeout(std::time::Duration::from_secs(5), ws.next())
+        .await
+        .expect("nenhum evento em 5 s")
+        .unwrap()
+        .unwrap();
+    serde_json::from_str(msg.to_text().unwrap()).unwrap()
+}
+
+#[tokio::test]
+async fn text_chat_history_and_realtime() {
+    let Some(addr) = spawn().await else { return };
+    let http = reqwest::Client::new();
+    let base = format!("http://{addr}");
+    let ana = register(&http, &base, "ana_").await;
+    let bia = register(&http, &base, "bia_").await;
+    let caio = register(&http, &base, "caio_").await;
+
+    let detail: ServerDetail = http
+        .post(format!("{base}/v1/servers"))
+        .bearer_auth(&ana.token)
+        .json(&json!({"name": "Chat"}))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let text = detail.channels[0].id;
+    let voice = detail.channels[1].id;
+    let invite: Invite = http
+        .post(format!("{base}/v1/servers/{}/invites", detail.server.id))
+        .bearer_auth(&ana.token)
+        .json(&json!({}))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    // Bia conecta no gateway ANTES de entrar no servidor; Caio nunca entra.
+    let mut bia_ws = gateway(&addr, &bia.token).await;
+    let mut caio_ws = gateway(&addr, &caio.token).await;
+    let res = http
+        .post(format!("{base}/v1/invites/{}", invite.code))
+        .bearer_auth(&bia.token)
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 200);
+
+    // Não-membro não lê nem escreve
+    let url = format!("{base}/v1/channels/{text}/messages");
+    assert_eq!(
+        http.get(&url)
+            .bearer_auth(&caio.token)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        404
+    );
+    assert_eq!(
+        http.post(&url)
+            .bearer_auth(&caio.token)
+            .json(&json!({"content": "oi"}))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        404
+    );
+    // Validação e canal de voz
+    assert_eq!(
+        http.post(&url)
+            .bearer_auth(&ana.token)
+            .json(&json!({"content": "   "}))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        422
+    );
+    let long = "a".repeat(4001);
+    assert_eq!(
+        http.post(&url)
+            .bearer_auth(&ana.token)
+            .json(&json!({"content": long}))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        422
+    );
+    assert_eq!(
+        http.post(format!("{base}/v1/channels/{voice}/messages"))
+            .bearer_auth(&ana.token)
+            .json(&json!({"content": "oi"}))
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        422
+    );
+
+    // Ana manda; Bia recebe em tempo real
+    let res = http
+        .post(&url)
+        .bearer_auth(&ana.token)
+        .json(&json!({"content": "  bora jogar?  "}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 201);
+    let sent: oxid_proto::message::Message = res.json().await.unwrap();
+    assert_eq!(sent.content, "bora jogar?");
+    match next_event(&mut bia_ws).await {
+        ServerEvent::MessageCreate { message } => {
+            assert_eq!(message, sent);
+            assert_eq!(message.author.username, ana.user.username);
+        }
+        other => panic!("esperava MessageCreate, veio {other:?}"),
+    }
+    // Caio não recebe: o próximo evento dele é a resposta ao heartbeat
+    caio_ws
+        .send(Message::Text(
+            serde_json::to_string(&ClientEvent::Heartbeat)
+                .unwrap()
+                .into(),
+        ))
+        .await
+        .unwrap();
+    assert_eq!(next_event(&mut caio_ws).await, ServerEvent::HeartbeatAck);
+
+    // Histórico em ordem e paginação
+    for i in 1..=3 {
+        http.post(&url)
+            .bearer_auth(&bia.token)
+            .json(&json!({"content": format!("msg {i}")}))
+            .send()
+            .await
+            .unwrap();
+    }
+    let all: Vec<oxid_proto::message::Message> = http
+        .get(&url)
+        .bearer_auth(&bia.token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let contents: Vec<_> = all.iter().map(|m| m.content.as_str()).collect();
+    assert_eq!(contents, ["bora jogar?", "msg 1", "msg 2", "msg 3"]);
+    let page: Vec<oxid_proto::message::Message> = http
+        .get(format!("{url}?limit=2&before={}", all[3].id))
+        .bearer_auth(&bia.token)
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(
+        page.iter().map(|m| m.content.as_str()).collect::<Vec<_>>(),
+        ["msg 1", "msg 2"]
+    );
+}

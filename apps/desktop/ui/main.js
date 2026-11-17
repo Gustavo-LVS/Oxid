@@ -4,6 +4,7 @@ const $ = (id) => document.getElementById(id);
 
 let registering = false;
 let currentServer = null;
+let currentChannel = null;
 
 function setStatus(text) { $("status").textContent = text; }
 
@@ -46,6 +47,7 @@ $("auth-form").addEventListener("submit", async (ev) => {
 $("logout").addEventListener("click", async () => {
   await invoke("logout");
   currentServer = null;
+  closeChannel();
   setRegistering(false);
   $("app").hidden = true;
   $("auth").hidden = false;
@@ -85,11 +87,79 @@ async function openServer(id) {
   text.replaceChildren();
   voice.replaceChildren();
   for (const c of currentServer.channels) {
-    if (c.kind === "text") text.append(li("# " + c.name, () => setStatus(`Canal #${c.name}: o chat de texto chega no passo 4.`)));
+    if (c.kind === "text") text.append(li("# " + c.name, () => openChannel(c)));
     else voice.append(li("🔊 " + c.name, () => setStatus(`Canal de voz ${c.name}: a voz entra no app depois da prova de conceito.`)));
   }
   setStatus("");
+  const firstText = currentServer.channels.find((c) => c.kind === "text");
+  if (firstText) await openChannel(firstText);
+  else closeChannel();
 }
+
+// ---- Chat de texto ----
+function closeChannel() {
+  currentChannel = null;
+  $("chat").hidden = true;
+}
+
+function renderMessage(m) {
+  const el = document.createElement("li");
+  const time = document.createElement("time");
+  time.dateTime = m.created_at;
+  time.textContent = new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const author = document.createElement("span");
+  author.className = "author";
+  author.textContent = m.author.display_name || m.author.username;
+  const body = document.createElement("span");
+  body.textContent = m.content;
+  el.dataset.id = m.id;
+  el.append(time, author, body);
+  return el;
+}
+
+function appendMessage(m) {
+  const list = $("messages");
+  if (list.querySelector(`[data-id="${m.id}"]`)) return; // já veio pelo envio ou pelo gateway
+  list.append(renderMessage(m));
+  list.scrollTop = list.scrollHeight;
+}
+
+async function openChannel(c) {
+  currentChannel = c;
+  document.querySelectorAll("#text-channels li").forEach((el) => el.classList.toggle("active", el.textContent === "# " + c.name));
+  $("chat-title").textContent = "# " + c.name;
+  $("messages").replaceChildren();
+  $("chat").hidden = false;
+  try {
+    const history = await invoke("list_messages", { channelId: c.id, before: null });
+    if (currentChannel?.id !== c.id) return;
+    history.forEach(appendMessage);
+  } catch (e) {
+    setStatus(e);
+  }
+}
+
+$("message-form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const input = ev.target.content;
+  const content = input.value.trim();
+  if (!content || !currentChannel) return;
+  input.value = "";
+  try {
+    appendMessage(await invoke("send_message", { channelId: currentChannel.id, content }));
+  } catch (e) {
+    input.value = content;
+    setStatus(e);
+  }
+});
+
+window.__TAURI__.event.listen("gateway", ({ payload }) => {
+  if (payload.op === "message_create") {
+    const m = payload.d.message;
+    if (m.channel_id === currentChannel?.id) appendMessage(m);
+  }
+});
+window.__TAURI__.event.listen("gateway-closed", () => setStatus("Conexão em tempo real caiu. Saia e entre de novo para reconectar."));
 
 $("new-server").addEventListener("click", () => $("server-dialog").showModal());
 $("server-dialog").addEventListener("close", async () => {

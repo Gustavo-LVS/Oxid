@@ -12,7 +12,7 @@ use oxid_proto::server::{
 use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
-use crate::{error::ApiError, extract::AuthUser, state::AppState};
+use crate::{error::ApiError, extract::AuthUser, hub::HubEvent, state::AppState};
 
 #[derive(sqlx::FromRow)]
 pub(crate) struct ServerRow {
@@ -179,6 +179,10 @@ pub async fn create(
     let text = insert_channel(&mut *tx, server.id, "geral", ChannelKind::Text).await?;
     let voice = insert_channel(&mut *tx, server.id, "Geral", ChannelKind::Voice).await?;
     tx.commit().await?;
+    state.hub.publish(HubEvent::MemberJoined {
+        server_id: server.id,
+        user_id,
+    });
     Ok((
         StatusCode::CREATED,
         Json(ServerDetail {

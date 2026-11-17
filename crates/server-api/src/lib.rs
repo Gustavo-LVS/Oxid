@@ -2,6 +2,7 @@
 
 mod error;
 mod extract;
+mod hub;
 mod routes;
 mod state;
 
@@ -20,6 +21,7 @@ pub fn app(pool: PgPool, config: &Config) -> Router {
         db: pool,
         tokens: TokenKeys::new(&config.jwt_secret, config.token_ttl_secs),
         livekit: config.livekit.clone(),
+        hub: Default::default(),
     };
     Router::new()
         .route("/health", get(|| async { "ok" }))
@@ -40,6 +42,10 @@ pub fn app(pool: PgPool, config: &Config) -> Router {
         .route(
             "/v1/servers/{server_id}/invites",
             post(routes::invites::create),
+        )
+        .route(
+            "/v1/channels/{channel_id}/messages",
+            get(routes::messages::list).post(routes::messages::create),
         )
         .route(
             "/v1/invites/{code}",

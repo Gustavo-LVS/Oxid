@@ -9,5 +9,6 @@ pub mod user;
 
 /// Versão do protocolo do gateway. Incrementar em mudanças incompatíveis.
 pub const GATEWAY_VERSION: u32 = 1;
+pub mod message;
 pub mod server;
 pub mod voice;

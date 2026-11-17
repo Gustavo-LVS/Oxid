@@ -1,16 +1,49 @@
 //! App desktop: a interface (HTML/JS em `../ui`) chama estes comandos, que
 //! falam com a API usando o `client-core`. O token fica só no lado Rust.
 
-use oxid_client_core::api::{ApiClient, ClientError};
+use oxid_client_core::{
+    api::{ApiClient, ClientError},
+    gateway,
+};
 use oxid_proto::{
     auth::{AuthResponse, RegisterRequest},
+    message::Message,
     server::{CreateInviteRequest, Invite, Server, ServerDetail},
 };
-use tokio::sync::Mutex;
+use tauri::{AppHandle, Emitter};
+use tokio::{sync::Mutex, task::JoinHandle};
 use uuid::Uuid;
 
 #[derive(Default)]
-struct Session(Mutex<Option<ApiClient>>);
+struct Session {
+    api: Mutex<Option<ApiClient>>,
+    /// Tarefa que repassa eventos do gateway para a interface.
+    gateway: Mutex<Option<JoinHandle<()>>>,
+}
+
+/// Evento emitido para a interface quando o gateway cai.
+const GATEWAY_EVENT: &str = "gateway";
+const GATEWAY_CLOSED: &str = "gateway-closed";
+
+/// Abre o gateway e repassa cada evento do servidor para a interface.
+async fn start_session(app: &AppHandle, session: &Session, api: ApiClient) -> CmdResult<()> {
+    let token = api.token().unwrap_or_default().to_string();
+    let mut gw = gateway::connect(api.base_url(), &token)
+        .await
+        .map_err(|e| e.to_string())?;
+    let app = app.clone();
+    let task = tokio::spawn(async move {
+        while let Some(ev) = gw.events.recv().await {
+            let _ = app.emit(GATEWAY_EVENT, ev);
+        }
+        let _ = app.emit(GATEWAY_CLOSED, ());
+    });
+    if let Some(old) = session.gateway.lock().await.replace(task) {
+        old.abort();
+    }
+    *session.api.lock().await = Some(api);
+    Ok(())
+}
 
 type CmdResult<T> = Result<T, String>;
 
@@ -23,7 +56,7 @@ fn msg(e: ClientError) -> String {
 
 async fn client(session: &Session) -> CmdResult<ApiClient> {
     session
-        .0
+        .api
         .lock()
         .await
         .clone()
@@ -32,6 +65,7 @@ async fn client(session: &Session) -> CmdResult<ApiClient> {
 
 #[tauri::command]
 async fn login(
+    app: AppHandle,
     session: tauri::State<'_, Session>,
     api_url: String,
     login: String,
@@ -39,12 +73,13 @@ async fn login(
 ) -> CmdResult<AuthResponse> {
     let mut api = ApiClient::new(api_url.trim_end_matches('/'));
     let res = api.login(&login, &password).await.map_err(msg)?;
-    *session.0.lock().await = Some(api);
+    start_session(&app, &session, api).await?;
     Ok(res)
 }
 
 #[tauri::command]
 async fn register(
+    app: AppHandle,
     session: tauri::State<'_, Session>,
     api_url: String,
     username: String,
@@ -60,13 +95,16 @@ async fn register(
         })
         .await
         .map_err(msg)?;
-    *session.0.lock().await = Some(api);
+    start_session(&app, &session, api).await?;
     Ok(res)
 }
 
 #[tauri::command]
 async fn logout(session: tauri::State<'_, Session>) -> CmdResult<()> {
-    *session.0.lock().await = None;
+    *session.api.lock().await = None;
+    if let Some(task) = session.gateway.lock().await.take() {
+        task.abort();
+    }
     Ok(())
 }
 
@@ -120,6 +158,32 @@ async fn accept_invite(session: tauri::State<'_, Session>, code: String) -> CmdR
         .map_err(msg)
 }
 
+#[tauri::command]
+async fn list_messages(
+    session: tauri::State<'_, Session>,
+    channel_id: Uuid,
+    before: Option<Uuid>,
+) -> CmdResult<Vec<Message>> {
+    client(&session)
+        .await?
+        .messages(channel_id, before)
+        .await
+        .map_err(msg)
+}
+
+#[tauri::command]
+async fn send_message(
+    session: tauri::State<'_, Session>,
+    channel_id: Uuid,
+    content: String,
+) -> CmdResult<Message> {
+    client(&session)
+        .await?
+        .send_message(channel_id, &content)
+        .await
+        .map_err(msg)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(Session::default())
@@ -131,7 +195,9 @@ pub fn run() {
             server_detail,
             create_server,
             create_invite,
-            accept_invite
+            accept_invite,
+            list_messages,
+            send_message
         ])
         .run(tauri::generate_context!())
         .expect("falha ao iniciar o Oxid");

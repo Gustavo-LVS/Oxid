@@ -14,8 +14,8 @@ Entregar o MVP v0.1 seguindo a ordem de execução do plano de ação.
 ## Forecast Control
 
 - Appetite state: `within_appetite`
-- Completed count: 2
-- Registered remaining: 5
+- Completed count: 3
+- Registered remaining: 4
 - Forecast delta: none.
 - Confidence: média.
 - Next scope tradeoff: none yet.
@@ -30,7 +30,7 @@ s01 fechado. s02 ativo: prova de conceito de voz (2 clientes via LiveKit, endpoi
 1. ~~s01: workspace, crate `proto`, API com login e banco~~ (concluído 2026-11-17).
 2. s02: prova de conceito de voz, 2 clientes falando via LiveKit; API emite token de sala.
 3. ~~s03: cliente Tauri com lista de servidores e canais~~ (concluído 2026-11-17).
-4. s04: chat de texto via WebSocket (gateway + Redis pub/sub).
+4. ~~s04: chat de texto via WebSocket~~ (concluído 2026-11-17; hub em memória, Redis quando houver vários nós).
 5. s05: polir áudio: supressão de ruído, cancelamento de eco, push-to-talk.
 6. s06: CI com build, assinatura, updater e site de download.
 7. s07: beta fechado com amigos, medir latência e banda.
