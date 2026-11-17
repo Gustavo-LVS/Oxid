@@ -1,6 +1,8 @@
 //! App desktop: a interface (HTML/JS em `../ui`) chama estes comandos, que
 //! falam com a API usando o `client-core`. O token fica só no lado Rust.
 
+mod updater;
+
 use oxid_client_core::{
     api::{ApiClient, ClientError},
     gateway,
@@ -205,6 +207,22 @@ fn ptt_shortcut_label() -> String {
     "Alt+V".into()
 }
 
+/// Reinicia o app para aplicar a atualização já baixada.
+#[tauri::command]
+fn restart_to_update(app: AppHandle) {
+    app.restart();
+}
+
+#[tauri::command]
+fn pending_update(state: tauri::State<'_, updater::PendingUpdate>) -> Option<updater::UpdateReady> {
+    state.0.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn update_channel() -> &'static str {
+    updater::CHANNEL
+}
+
 pub fn run() {
     let ptt = PushToTalk::default();
     let ptt_state = ptt.0.clone();
@@ -223,7 +241,16 @@ pub fn run() {
                 })
                 .build(),
         )
+        .plugin({
+            let mut b = tauri_plugin_updater::Builder::new();
+            if let Some(key) = updater::pubkey() {
+                b = b.pubkey(key);
+            }
+            b.build()
+        })
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            tauri::async_runtime::spawn(updater::run(app.handle().clone()));
             if let Err(e) = app.global_shortcut().register(ptt_shortcut()) {
                 // Outro programa pode já usar o atalho; o app segue sem push-to-talk.
                 eprintln!("não foi possível registrar o atalho de push-to-talk: {e}");
@@ -231,6 +258,7 @@ pub fn run() {
             Ok(())
         })
         .manage(ptt)
+        .manage(updater::PendingUpdate::default())
         .manage(Session::default())
         .invoke_handler(tauri::generate_handler![
             login,
@@ -243,7 +271,10 @@ pub fn run() {
             accept_invite,
             list_messages,
             send_message,
-            ptt_shortcut_label
+            ptt_shortcut_label,
+            restart_to_update,
+            update_channel,
+            pending_update
         ])
         .run(tauri::generate_context!())
         .expect("falha ao iniciar o Oxid");

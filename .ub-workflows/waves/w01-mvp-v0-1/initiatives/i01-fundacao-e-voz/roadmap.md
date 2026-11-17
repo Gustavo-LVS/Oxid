@@ -32,7 +32,7 @@ s01 fechado. s02 ativo: prova de conceito de voz (2 clientes via LiveKit, endpoi
 3. ~~s03: cliente Tauri com lista de servidores e canais~~ (concluído 2026-11-17).
 4. ~~s04: chat de texto via WebSocket~~ (concluído 2026-11-17; hub em memória, Redis quando houver vários nós).
 5. s05: polir áudio (feito 2026-11-17; falta teste com microfone ao vivo).
-6. s06: CI com build, assinatura, updater e site de download.
+6. s06: CI com build, assinatura, updater e site de download (feito 2026-11-17; falta o primeiro release real).
 7. s07: beta fechado com amigos, medir latência e banda.
 8. Pre-audit continuation window (`adaptive insertion`).
 9. Final audit (`terminal audit`).

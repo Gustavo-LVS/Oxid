@@ -1,0 +1,48 @@
+---
+import Base from "../layouts/Base.astro";
+import { GITHUB_REPO, RELEASES_URL } from "../config";
+---
+<Base title="Oxid">
+  <h1>Chame a galera. Sem ruído, sem lag.</h1>
+  <p class="lead">O Oxid é um app de chamadas em grupo leve, feito em Rust, com servidores de voz no Brasil. Para jogar com os amigos ou trabalhar com o time.</p>
+
+  <p>
+    <a id="download" class="btn" href={RELEASES_URL}>Baixar o Oxid</a>
+  </p>
+  <p class="muted" id="download-info">Windows, macOS e Linux. <a href={RELEASES_URL}>Outras versões</a></p>
+
+  <section class="grid">
+    <div class="card"><h3>Áudio limpo</h3><p>Supressão de ruído com IA: o ventilador e o teclado ficam de fora.</p></div>
+    <div class="card"><h3>Push-to-talk</h3><p>Atalho global que funciona com o jogo em foco, ou ativação por voz.</p></div>
+    <div class="card"><h3>Leve</h3><p>App nativo pequeno, que não disputa CPU e memória com o seu jogo.</p></div>
+    <div class="card"><h3>Servidores e canais</h3><p>Canais de texto e voz, convites por link e atualização automática.</p></div>
+  </section>
+
+  <script define:vars={{ GITHUB_REPO }}>
+    // Mostra o botão certo para o sistema do visitante e, se possível, aponta
+    // direto para o instalador do último release.
+    const ua = navigator.userAgent;
+    // Celulares e tablets primeiro: o UA do iPhone também contém "Mac OS X".
+    const mobile = /iPhone|iPad|iPod|Android/i.test(ua);
+    const os = mobile ? null : /Windows/i.test(ua) ? "windows" : /Macintosh|Mac OS X/i.test(ua) ? "macos" : /Linux|X11/i.test(ua) ? "linux" : null;
+    if (mobile) document.getElementById("download-info").firstChild.textContent = "Por enquanto o Oxid é para computador (Windows, macOS e Linux). ";
+    const label = { windows: "Baixar para Windows", macos: "Baixar para macOS", linux: "Baixar para Linux" };
+    const pick = {
+      windows: (n) => n.endsWith("-setup.exe") || n.endsWith(".msi"),
+      macos: (n) => n.endsWith(".dmg"),
+      linux: (n) => n.endsWith(".AppImage") || n.endsWith(".deb"),
+    };
+    const btn = document.getElementById("download");
+    if (os) {
+      btn.textContent = label[os];
+      fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((rel) => {
+          const asset = rel.assets.find((a) => pick[os](a.name));
+          if (asset) btn.href = asset.browser_download_url;
+          document.getElementById("download-info").firstChild.textContent = `Versão ${rel.tag_name}. `;
+        })
+        .catch(() => {});
+    }
+  </script>
+</Base>

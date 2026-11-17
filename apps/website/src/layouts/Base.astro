@@ -1,0 +1,52 @@
+---
+interface Props { title: string; description?: string }
+const { title, description = "Chamadas em grupo leves, com áudio limpo, para jogar e trabalhar." } = Astro.props;
+const nav = [
+  ["/", "Início"],
+  ["/changelog", "Novidades"],
+  ["/status", "Status"],
+];
+---
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.png" />
+    <title>{title === "Oxid" ? title : `${title} · Oxid`}</title>
+  </head>
+  <body>
+    <header class="top">
+      <a href="/" class="brand"><img src="/favicon.png" alt="" width="28" height="28" /> Oxid</a>
+      <nav>{nav.map(([href, label]) => <a href={href}>{label}</a>)}</nav>
+    </header>
+    <main><slot /></main>
+    <footer class="bottom">
+      <a href="/termos">Termos de uso</a>
+      <a href="/privacidade">Privacidade</a>
+      <span>© {new Date().getFullYear()} Oxid</span>
+    </footer>
+  </body>
+</html>
+<style is:global>
+  :root { --bg: #16171b; --panel: #1e1f24; --text: #e6e6e9; --muted: #9a9aa3; --accent: #c45c26; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.6 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--text); }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  .top, .bottom { display: flex; gap: 20px; align-items: center; justify-content: space-between; max-width: 860px; margin: 0 auto; padding: 16px; flex-wrap: wrap; }
+  .top nav, .bottom { gap: 16px; }
+  .top nav { display: flex; gap: 16px; }
+  .top nav a, .bottom a, .bottom span { color: var(--muted); text-decoration: none; font-size: 14px; }
+  .bottom { border-top: 1px solid #2a2b31; justify-content: flex-start; }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; text-decoration: none; font-size: 20px; }
+  h1 { font-size: clamp(28px, 6vw, 44px); line-height: 1.15; margin: 32px 0 12px; }
+  .lead { color: var(--muted); font-size: 18px; max-width: 600px; }
+  .btn { display: inline-block; background: var(--accent); color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 40px; }
+  .card { background: var(--panel); border-radius: 10px; padding: 16px; }
+  .card h3 { margin: 0 0 6px; font-size: 16px; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+</style>

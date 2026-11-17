@@ -203,3 +203,13 @@ window.__TAURI__.event.listen("ptt", ({ payload: pressed }) => {
   $("ptt").classList.toggle("on", pressed);
   $("ptt").firstChild.textContent = pressed ? "Falando: " : "Push-to-talk: ";
 });
+
+// ---- Atualização automática ----
+function showUpdate(u) {
+  if (!u) return;
+  $("update-text").textContent = `Versão ${u.version} baixada.`;
+  $("update-bar").hidden = false;
+}
+window.__TAURI__.event.listen("update-ready", ({ payload }) => showUpdate(payload));
+invoke("pending_update").then(showUpdate);
+$("update-restart").addEventListener("click", () => invoke("restart_to_update"));
