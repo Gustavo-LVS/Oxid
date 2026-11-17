@@ -10,6 +10,26 @@ pub struct Config {
     pub jwt_secret: String,
     /// Validade do token de sessão, em segundos.
     pub token_ttl_secs: i64,
+    /// Credenciais do SFU. Sem elas, o endpoint de voz responde 503.
+    pub livekit: Option<LiveKitConfig>,
+}
+
+#[derive(Debug, Clone)]
+pub struct LiveKitConfig {
+    /// URL que o cliente usa para conectar, ex.: `ws://localhost:7880`.
+    pub url: String,
+    pub api_key: String,
+    pub api_secret: String,
+}
+
+impl LiveKitConfig {
+    fn from_env() -> Option<Self> {
+        Some(Self {
+            url: env::var("LIVEKIT_URL").ok()?,
+            api_key: env::var("LIVEKIT_API_KEY").ok()?,
+            api_secret: env::var("LIVEKIT_API_SECRET").ok()?,
+        })
+    }
 }
 
 impl Config {
@@ -32,6 +52,7 @@ impl Config {
                 .transpose()
                 .context("OXID_TOKEN_TTL_SECS inválido")?
                 .unwrap_or(60 * 60 * 24 * 30),
+            livekit: LiveKitConfig::from_env(),
         })
     }
 }

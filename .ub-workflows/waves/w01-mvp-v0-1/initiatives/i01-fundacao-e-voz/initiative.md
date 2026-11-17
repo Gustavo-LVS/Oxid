@@ -48,9 +48,9 @@ Executa a ordem do plano de ação: workspace e API, prova de conceito de voz, c
 
 - Interaction mode: `flow` (o Gustavo pediu para passar pelo plano inteiro).
 - Active discovery: `none`
-- Active sprint: `none` (s01 fechado)
-- Current gate: `sprint_closed`
-- Next allowed action: preparar s02 (prova de conceito de voz com LiveKit).
+- Active sprint: `w01-i01-s02-sprint-voice-poc-livekit`
+- Current gate: `live_validation_pending`
+- Next allowed action: rodar `voice_poc` com dois usuários numa máquina com Docker e clang 21+.
 
 ## Durable Decisions
 

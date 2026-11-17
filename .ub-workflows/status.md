@@ -10,17 +10,19 @@ State: active. Interaction mode: `flow`.
 
 ## WIP State
 
-Nenhum sprint ativo. Nenhuma discovery ativa.
+Sprint ativo: `w01-i01-s02-sprint-voice-poc-livekit`. Nenhuma discovery ativa.
 
 ## Active Pointers
 
 - Wave: `waves/w01-mvp-v0-1/`
 - Initiative: `waves/w01-mvp-v0-1/initiatives/i01-fundacao-e-voz/`
-- Último sprint: `w01-i01-s01-sprint-workspace-api-login` (fechado)
+- Sprint ativo: `w01-i01-s02-sprint-voice-poc-livekit`
+- Último fechado: `w01-i01-s01-sprint-workspace-api-login`
 
 ## Blockers
 
 1. Sem repositório GitHub: o CI ainda não roda.
+2. s02: o teste ao vivo de voz precisa de uma máquina com Docker (LiveKit) e clang 21+; o ambiente de build atual não tem.
 
 ## Wave Sequence
 
@@ -37,4 +39,4 @@ Use `SOURCE_PACK_ATLAS.md` before opening source packs.
 
 ## Next Allowed Action
 
-Preparar e executar `w01-i01-s02`: prova de conceito de voz (2 clientes via LiveKit, endpoint de token na API).
+Rodar os gates ao vivo do s02 (README, seção prova de conceito) e fechar o sprint; depois preparar s03 (cliente Tauri com servidores e canais).

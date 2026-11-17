@@ -7,7 +7,7 @@ Entregar o MVP v0.1 seguindo a ordem de execução do plano de ação.
 ## Current Position
 
 - Current state: `in progress`
-- Active or next sprint: `w01-i01-s02` (prova de conceito de voz), a preparar
+- Active or next sprint: `w01-i01-s02` (prova de conceito de voz), ativo; falta o teste ao vivo
 - Active discovery: `none`
 - WIP state: one discovery allowed, no active delivery sprint.
 
@@ -23,7 +23,7 @@ Entregar o MVP v0.1 seguindo a ordem de execução do plano de ação.
 
 ## Active Or Next Sprint Route
 
-s01 fechado. Próximo: s02, prova de conceito de voz (2 clientes via LiveKit, endpoint de token na API).
+s01 fechado. s02 ativo: prova de conceito de voz (2 clientes via LiveKit, endpoint de token na API).
 
 ## Adaptive Plan
 

@@ -21,7 +21,7 @@ deploy/           docker-compose, coturn, Caddy
 ## Rodando local
 
 ```bash
-docker compose -f deploy/docker-compose.yml up -d postgres redis
+docker compose -f deploy/docker-compose.yml up -d
 cp .env.example .env   # ajuste OXID_JWT_SECRET
 set -a; . ./.env; set +a
 cargo run -p oxid-server-api
@@ -36,6 +36,21 @@ API atual:
 | POST | `/v1/auth/login` | Login por usuário ou e-mail; devolve token |
 | GET | `/v1/users/@me` | Usuário do token (`Authorization: Bearer`) |
 | GET | `/v1/gateway` | WebSocket: Hello → Identify → Ready, heartbeat |
+| POST | `/v1/voice/token` | Token de sala de voz no LiveKit (`room`) |
+
+## Prova de conceito de voz (passo 2)
+
+Dois clientes entram na mesma sala via LiveKit; cada um publica um tom (no lugar do microfone) e imprime o volume de quem está ouvindo.
+
+Requisito: **clang 21 ou mais novo** (o libwebrtc pré-compilado do LiveKit exige).
+
+```bash
+# com a API e o docker-compose rodando, crie dois usuários (ana e bia) via /v1/auth/register e depois:
+OXID_LOGIN=ana OXID_PASSWORD=senha-forte-123 OXID_TONE_HZ=440 cargo run -p oxid-client-core --features voice --example voice_poc
+OXID_LOGIN=bia OXID_PASSWORD=senha-forte-123 OXID_TONE_HZ=660 cargo run -p oxid-client-core --features voice --example voice_poc
+```
+
+Sucesso: cada terminal mostra `recebendo áudio de ...` e um volume RMS por volta de 0.2.
 
 ## Testes
 
