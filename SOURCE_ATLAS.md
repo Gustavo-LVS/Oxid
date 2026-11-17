@@ -29,7 +29,9 @@ Cargo workspace (Rust, edition 2024):
 - `crates/server-sfu/` — reservado para SFU próprio em str0m (MVP usa LiveKit).
 - `crates/client-core/` — `ApiClient` (HTTP) e `voice::VoiceSession` (feature `voice`, LiveKit; exige clang 21+). Exemplo `examples/voice_poc.rs`.
 - `crates/client-audio/` — ainda vazio (passo 5).
-- `apps/desktop/` (Tauri 2), `apps/website/` (site de download) — ainda vazios.
+- `apps/desktop/src-tauri/` — app Tauri 2 (`oxid-desktop`); comandos em `src/lib.rs` usam `client-core`; token fica só no Rust.
+- `apps/desktop/ui/` — interface provisória em HTML/CSS/JS sem build (design definitivo depois).
+- `apps/website/` — site de download (passo 6), ainda vazio.
 - `migrations/` — SQL do sqlx, aplicado ao subir a API.
 - `deploy/` — docker-compose de dev (Postgres, Redis, LiveKit).
 
