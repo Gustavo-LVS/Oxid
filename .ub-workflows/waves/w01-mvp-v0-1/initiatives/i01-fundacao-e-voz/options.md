@@ -17,7 +17,9 @@ preference, not delivery commitment.
 
 ## Possible Initiative Insertion
 
-No active cards.
+- **Reconexão automática do gateway** no app (hoje avisa e pede novo login).
+- **Presença online** (quem está conectado) usando o hub de eventos.
+- **Voz dentro do app Tauri**: ligar `VoiceSession` aos canais de voz depois do teste ao vivo do s02.
 
 ## Deferred To Product Options
 

@@ -11,7 +11,7 @@ use rand::{Rng, distr::Alphanumeric};
 use uuid::Uuid;
 
 use super::servers::{find_server, is_member, require_member};
-use crate::{error::ApiError, extract::AuthUser, state::AppState};
+use crate::{error::ApiError, extract::AuthUser, hub::HubEvent, state::AppState};
 
 const CODE_LEN: usize = 10;
 const MAX_EXPIRY_SECS: i64 = 60 * 60 * 24 * 30;
@@ -150,5 +150,9 @@ pub async fn accept(
     }
     let server = find_server(&mut *tx, invite.server_id).await?;
     tx.commit().await?;
+    state.hub.publish(HubEvent::MemberJoined {
+        server_id: server.id,
+        user_id,
+    });
     Ok(Json(server))
 }

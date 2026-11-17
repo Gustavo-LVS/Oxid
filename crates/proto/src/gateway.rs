@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::user::User;
+use crate::{message::Message, user::User};
 
 /// Mensagens enviadas pelo servidor ao cliente.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -23,6 +23,8 @@ pub enum ServerEvent {
         user_id: Uuid,
         status: PresenceStatus,
     },
+    /// Nova mensagem num canal de texto de um servidor do usuário.
+    MessageCreate { message: Message },
     /// Erro fatal; o servidor fecha a conexão em seguida.
     InvalidSession { reason: String },
 }

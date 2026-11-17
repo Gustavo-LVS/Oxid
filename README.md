@@ -42,10 +42,11 @@ API atual:
 | POST | `/v1/servers/{id}/channels` | Cria canal (`name`, `kind`: `text`/`voice`); só o dono |
 | POST | `/v1/servers/{id}/invites` | Cria convite (`max_uses`, `expires_in_secs` opcionais) |
 | GET/POST | `/v1/invites/{code}` | Prévia do convite / aceita e entra no servidor |
+| GET/POST | `/v1/channels/{id}/messages` | Histórico (`before`, `limit`) / envia mensagem; chega aos membros pelo gateway (`message_create`) |
 
 ## App desktop (Tauri 2)
 
-Interface provisória (HTML/JS simples em `apps/desktop/ui`; o design vem depois): login e cadastro, lista de servidores e canais, criar servidor, gerar convite e entrar por código ou link.
+Interface provisória (HTML/JS simples em `apps/desktop/ui`; o design vem depois): login e cadastro, lista de servidores e canais, criar servidor, gerar convite, entrar por código ou link, e chat de texto em tempo real.
 
 ```bash
 # Linux: sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev

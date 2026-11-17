@@ -25,7 +25,14 @@ button.small { padding: 4px 8px; font-size: 12px; }
 .channels li:hover, .channels li.active { background: #3a3b42; color: var(--text); }
 .channels footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
 .invite { background: var(--rail); padding: 6px; border-radius: 4px; user-select: all; }
-.content { padding: 24px; }
+.content { padding: 24px; display: flex; flex-direction: column; min-height: 0; }
+.chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.chat h2 { font-size: 16px; margin: 8px 0; }
+.messages { list-style: none; margin: 0; padding: 0; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.messages li { line-height: 1.35; }
+.messages .author { font-weight: 600; margin-right: 6px; }
+.messages time { color: var(--muted); font-size: 11px; margin-right: 6px; }
+.composer { display: flex; gap: 8px; margin-top: 8px; }
 .join { display: flex; gap: 8px; max-width: 480px; }
 .status { color: var(--muted); }
 dialog { background: var(--panel); color: var(--text); border: 0; border-radius: 8px; }

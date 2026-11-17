@@ -2,6 +2,7 @@
 
 use oxid_proto::{
     auth::{ApiError, AuthResponse, LoginRequest, RegisterRequest},
+    message::{CreateMessageRequest, Message},
     server::{CreateInviteRequest, CreateServerRequest, Invite, Server, ServerDetail},
     voice::{VoiceTokenRequest, VoiceTokenResponse},
 };
@@ -30,6 +31,10 @@ impl ApiClient {
             base_url: base_url.into(),
             token: None,
         }
+    }
+
+    pub fn base_url(&self) -> &str {
+        &self.base_url
     }
 
     pub fn token(&self) -> Option<&str> {
@@ -80,6 +85,30 @@ impl ApiClient {
 
     pub async fn accept_invite(&self, code: &str) -> Result<Server, ClientError> {
         self.post(&format!("/v1/invites/{code}"), &()).await
+    }
+
+    pub async fn messages(
+        &self,
+        channel_id: Uuid,
+        before: Option<Uuid>,
+    ) -> Result<Vec<Message>, ClientError> {
+        let q = before.map(|b| format!("?before={b}")).unwrap_or_default();
+        self.get(&format!("/v1/channels/{channel_id}/messages{q}"))
+            .await
+    }
+
+    pub async fn send_message(
+        &self,
+        channel_id: Uuid,
+        content: &str,
+    ) -> Result<Message, ClientError> {
+        self.post(
+            &format!("/v1/channels/{channel_id}/messages"),
+            &CreateMessageRequest {
+                content: content.into(),
+            },
+        )
+        .await
     }
 
     pub async fn voice_token(&self, channel_id: Uuid) -> Result<VoiceTokenResponse, ClientError> {
