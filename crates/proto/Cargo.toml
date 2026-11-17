@@ -1,0 +1,15 @@
+[package]
+name = "oxid-proto"
+description = "Tipos compartilhados entre cliente e servidor (DTOs e eventos do gateway)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+serde.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

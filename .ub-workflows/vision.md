@@ -1,33 +1,33 @@
 # Product Vision
 
-> Rascunho inicial (2026-11-17). Será revisado quando o plano de ação do Gustavo chegar.
-
 ## Product Promise
 
-Oxid é um sistema de chamadas em grupo de baixa latência e áudio limpo, que serve tanto para jogar com amigos quanto para trabalhar em equipe.
+Oxid é um app de chamadas em grupo leve, de baixa latência e com áudio limpo, para jogar com amigos e para trabalhar em equipe. Servidores (comunidades) com canais de texto e de voz, cliente desktop que atualiza sozinho.
 
 ## Audiences
 
-1. Gamers que precisam de voz estável, push-to-talk e baixo consumo de recursos durante o jogo.
-2. Equipes de trabalho que precisam de salas de chamada, compartilhamento de tela e convites simples.
+1. Gamers brasileiros que precisam de voz estável, push-to-talk e baixo consumo durante o jogo.
+2. Equipes de trabalho que querem canais de voz e texto simples, com convite por link.
 
 ## Durable Principles
 
-1. Latência e qualidade de áudio vêm antes de qualquer recurso visual.
-2. Cliente leve: não pode roubar CPU/RAM do jogo.
-3. Privacidade por padrão.
+1. Latência e qualidade de áudio vêm antes de qualquer recurso visual. Servidores de voz perto do usuário (São Paulo primeiro).
+2. Cliente leve (Tauri + Rust), sem roubar CPU/RAM do jogo.
+3. Protocolo compartilhado (`crates/proto`): cliente e servidor quebram juntos na compilação.
+4. Usar WebRTC; não reinventar protocolo UDP no começo.
+5. Privacidade e LGPD desde o início.
 
 ## Capability Pillars
 
-1. Chamadas de voz em grupo via SFU.
-2. Vídeo e compartilhamento de tela.
-3. Organização em servidores/canais ou salas.
-4. Cliente desktop nativo, além do web.
+1. Contas, perfis, servidores e canais (API Rust/axum + PostgreSQL + Redis).
+2. Voz em grupo via SFU (LiveKit no MVP; SFU próprio em str0m depois).
+3. Áudio de qualidade: supressão de ruído, cancelamento de eco, push-to-talk.
+4. Distribuição: instalador assinado, atualização automática com canais stable/beta/canary, site de download.
 
 ## Evidence Questions
 
-1. Qual latência ponta a ponta e uso de CPU o cliente atinge com 10+ pessoas numa sala?
-2. O que faz um gamer trocar a ferramenta atual pelo Oxid?
+1. Qual latência ponta a ponta e consumo de banda/CPU com 10 pessoas numa sala?
+2. O beta com amigos prefere o Oxid à ferramenta que usa hoje? Por quê?
 
 ## Change Rule
 

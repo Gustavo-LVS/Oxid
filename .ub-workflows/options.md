@@ -14,15 +14,17 @@ Order is document order within each horizon lane. Order means current review pre
 
 ## Next Wave Candidate
 
-No active cards.
+- **v0.2 social e moderação:** DMs e amigos; cargos e permissões; moderação (kick, ban, mutar); upload de arquivos (R2/MinIO); menções e notificações; compartilhamento de tela.
 
 ## Probable Later Wave
 
-No active cards.
+- **v0.3+:** vídeo; overlay para jogos; API de bots; E2EE na voz (estilo DAVE); app mobile (Tauri 2); voz em várias regiões.
+- **SFU próprio em str0m:** trocar LiveKit por `crates/server-sfu` quando custo ou controle justificarem.
 
 ## Unassigned Product Option
 
-No active cards.
+- **Nome e marca:** confirmar "Oxid" (ou alternativas do plano) no INPI, Registro.br e Microsoft Store.
+- **Assinatura de código no Windows:** certificado tradicional (~US$ 200–500/ano) vs Azure Artifact Signing quando liberar no Brasil.
 
 ## Update Rules
 

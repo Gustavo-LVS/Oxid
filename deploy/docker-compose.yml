@@ -1,0 +1,26 @@
+# Ambiente de desenvolvimento: banco, Redis e SFU LiveKit (passo 2 do plano).
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: oxid
+      POSTGRES_PASSWORD: oxid
+      POSTGRES_DB: oxid
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  livekit:
+    image: livekit/livekit-server:v1.13
+    # --dev usa a chave devkey/secret; não use em produção.
+    command: --dev --bind 0.0.0.0
+    ports:
+      - "7880:7880"          # sinalização (WebSocket)
+      - "7881:7881"          # WebRTC via TCP
+      - "50000-50100:50000-50100/udp"
+
+volumes:
+  pgdata:

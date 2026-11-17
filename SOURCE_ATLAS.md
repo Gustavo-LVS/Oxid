@@ -21,14 +21,18 @@ Module maps are routing aids, not source truth. Use them to choose files to open
 
 ## Detected Source Routes
 
-Estrutura planejada (monorepo, ainda sem código; confirmar quando o plano de ação chegar):
+Cargo workspace (Rust, edition 2024):
 
-- `apps/web/` — cliente web React + TS + Vite com `livekit-client`.
-- `apps/desktop/` — cliente desktop Tauri 2 que reaproveita `apps/web`.
-- `services/api/` — API de contas, canais, convites e tokens LiveKit.
-- `infra/livekit/` — LiveKit Server, TURN e Redis (Docker Compose).
-- `packages/shared/` — tipos e contratos compartilhados.
-- `docs/` — arquitetura e ADRs.
+- `crates/proto/` — DTOs e eventos do gateway compartilhados por cliente e servidor. Mudanças aqui quebram os dois lados de propósito.
+- `crates/server-common/` — `config` (env), `db` (pool + migrações), `auth` (argon2id, JWT HS256), `telemetry`.
+- `crates/server-api/` — binário axum. Rotas em `src/routes/` (`auth`, `users`, `gateway`); testes ponta a ponta em `tests/api.rs` (precisam de `OXID_TEST_DATABASE_URL`).
+- `crates/server-sfu/` — reservado para SFU próprio em str0m (MVP usa LiveKit).
+- `crates/client-core/`, `crates/client-audio/` — cliente (ainda vazios).
+- `apps/desktop/` (Tauri 2), `apps/website/` (site de download) — ainda vazios.
+- `migrations/` — SQL do sqlx, aplicado ao subir a API.
+- `deploy/` — docker-compose de dev (Postgres, Redis, LiveKit).
+
+Validação local: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 
 ## Workflow Route
 
