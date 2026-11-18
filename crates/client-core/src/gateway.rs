@@ -11,9 +11,16 @@ use tokio_tungstenite::tungstenite::Message;
 #[derive(Debug, thiserror::Error)]
 pub enum GatewayError {
     #[error("falha no WebSocket: {0}")]
-    Ws(#[from] tokio_tungstenite::tungstenite::Error),
+    Ws(Box<tokio_tungstenite::tungstenite::Error>),
     #[error("protocolo inesperado: {0}")]
     Protocol(String),
+}
+
+// Box: o erro do tungstenite é grande e deixaria todo Result pesado (clippy::result_large_err).
+impl From<tokio_tungstenite::tungstenite::Error> for GatewayError {
+    fn from(e: tokio_tungstenite::tungstenite::Error) -> Self {
+        Self::Ws(Box::new(e))
+    }
 }
 
 /// Conexão ativa. Ao ser descartada, encerra a tarefa de fundo.
