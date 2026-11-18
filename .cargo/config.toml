@@ -1,0 +1,4 @@
+# O libwebrtc do LiveKit vem compilado com o runtime C estático (/MT) no Windows;
+# o resto precisa usar o mesmo, senão o link falha (LNK2038 RuntimeLibrary).
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
