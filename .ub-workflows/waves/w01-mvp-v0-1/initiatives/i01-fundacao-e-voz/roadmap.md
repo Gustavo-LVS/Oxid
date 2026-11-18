@@ -33,13 +33,14 @@ s01 fechado. s02 ativo: prova de conceito de voz (2 clientes via LiveKit, endpoi
 4. ~~s04: chat de texto via WebSocket~~ (concluído 2026-11-17; hub em memória, Redis quando houver vários nós).
 5. s05: polir áudio (feito 2026-11-17; falta teste com microfone ao vivo).
 6. s06: CI com build, assinatura, updater e site de download (feito 2026-11-17; falta o primeiro release real).
-7. s07: beta fechado com amigos, medir latência e banda.
-8. Pre-audit continuation window (`adaptive insertion`).
-9. Final audit (`terminal audit`).
+7. s07: correções da auditoria de 2026-11-18 (código pronto e validado; faltam os testes ao vivo do updater e da reconexão).
+8. s08: beta fechado com amigos, medir latência e banda.
+9. Pre-audit continuation window (`adaptive insertion`).
+10. Final audit (`terminal audit`).
 
 ## Sequence Changes
 
-No insertions, splits, reroutes, or deferrals yet.
+2026-11-18: s07 inserido (correções da auditoria); o beta fechado passou para s08.
 
 ## Revalidation Rules
 

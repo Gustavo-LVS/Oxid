@@ -26,7 +26,6 @@ Cargo workspace (Rust, edition 2024):
 - `crates/proto/` — DTOs e eventos do gateway compartilhados por cliente e servidor. Mudanças aqui quebram os dois lados de propósito.
 - `crates/server-common/` — `config` (env), `db` (pool + migrações; `build.rs` recompila quando `migrations/` muda), `auth` (argon2id, JWT HS256), `telemetry`.
 - `crates/server-api/` — binário axum. Rotas em `src/routes/` (`auth`, `users`, `gateway`, `voice`, `servers`, `invites`, `messages`); fan-out de eventos em `src/hub.rs`; testes ponta a ponta em `tests/api.rs` (precisam de `OXID_TEST_DATABASE_URL`).
-- `crates/server-sfu/` — reservado para SFU próprio em str0m (MVP usa LiveKit).
 - `crates/client-core/` — `ApiClient` (HTTP), `gateway` (WebSocket com heartbeat) e `voice::VoiceSession` (feature `voice`, LiveKit; exige clang 21+). Exemplo `examples/voice_poc.rs`.
 - `crates/client-audio/` — `frames` (mono 48 kHz, 10 ms), `processor` (RNNoise, ativação por voz, PTT, mudo), `capture` e `playback` (cpal, feature `capture`; `playback::Mixer` mistura as vozes recebidas). Teste com fala real em `tests/pipeline.rs`.
 - `apps/desktop/src-tauri/` — app Tauri 2 (`oxid-desktop`); comandos em `src/lib.rs` usam `client-core`; token fica só no Rust.
@@ -36,7 +35,7 @@ Cargo workspace (Rust, edition 2024):
 - `apps/website/` — site de download em Astro (`src/config.ts` com repositório e API).
 - `.github/workflows/` — `ci.yml` (fmt, clippy, testes, site) e `release.yml` (build, assinatura, release, manifesto por canal).
 - `migrations/` — SQL do sqlx, aplicado ao subir a API.
-- `deploy/` — docker-compose de dev (Postgres, Redis, LiveKit); `deploy/prod/` produção numa VM (API, Postgres, LiveKit, Caddy) com `Dockerfile` na raiz.
+- `deploy/` — docker-compose de dev (Postgres, LiveKit); `deploy/prod/` produção numa VM (API, Postgres, LiveKit, Caddy) com `Dockerfile` na raiz.
 
 Validação local: `cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
 

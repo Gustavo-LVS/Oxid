@@ -14,6 +14,8 @@ pub enum GatewayError {
     Ws(Box<tokio_tungstenite::tungstenite::Error>),
     #[error("protocolo inesperado: {0}")]
     Protocol(String),
+    #[error("sessão recusada: {0}")]
+    InvalidSession(String),
 }
 
 // Box: o erro do tungstenite é grande e deixaria todo Result pesado (clippy::result_large_err).
@@ -79,7 +81,9 @@ pub async fn connect(api_base: &str, token: &str) -> Result<Gateway, GatewayErro
     .await?;
     let ready = match rx.next().await.transpose()?.and_then(parse) {
         Some(ev @ ServerEvent::Ready { .. }) => ev,
-        Some(ServerEvent::InvalidSession { reason }) => return Err(GatewayError::Protocol(reason)),
+        Some(ServerEvent::InvalidSession { reason }) => {
+            return Err(GatewayError::InvalidSession(reason));
+        }
         other => {
             return Err(GatewayError::Protocol(format!(
                 "esperava Ready, veio {other:?}"

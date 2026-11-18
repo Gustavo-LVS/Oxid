@@ -133,6 +133,10 @@ async function openChannel(c) {
   $("chat-title").textContent = "# " + c.name;
   $("messages").replaceChildren();
   $("chat").hidden = false;
+  await openChannelHistory(c);
+}
+
+async function openChannelHistory(c) {
   try {
     const history = await invoke("list_messages", { channelId: c.id, before: null });
     if (currentChannel?.id !== c.id) return;
@@ -162,7 +166,13 @@ window.__TAURI__.event.listen("gateway", ({ payload }) => {
     if (m.channel_id === currentChannel?.id) appendMessage(m);
   }
 });
-window.__TAURI__.event.listen("gateway-closed", () => setStatus("Conexão em tempo real caiu. Saia e entre de novo para reconectar."));
+window.__TAURI__.event.listen("gateway-closed", () => setStatus("Sessão em tempo real encerrada. Saia e entre de novo."));
+window.__TAURI__.event.listen("gateway-reconnecting", () => setStatus("Conexão em tempo real caiu. Reconectando..."));
+window.__TAURI__.event.listen("gateway-reconnected", () => {
+  setStatus("");
+  // Mensagens enviadas durante a queda não chegam pelo gateway: recarrega o histórico (appendMessage evita duplicar).
+  if (currentChannel) openChannelHistory(currentChannel);
+});
 
 $("new-server").addEventListener("click", () => $("server-dialog").showModal());
 $("server-dialog").addEventListener("close", async () => {

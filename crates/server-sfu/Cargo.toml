@@ -1,9 +1,0 @@
-[package]
-name = "oxid-server-sfu"
-description = "Servidor de mídia (SFU). Reservado: o MVP pode usar LiveKit e trocar depois por str0m."
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-publish.workspace = true
-
-[dependencies]

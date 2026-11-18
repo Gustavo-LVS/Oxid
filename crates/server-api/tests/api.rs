@@ -1,5 +1,5 @@
 //! Testes ponta a ponta contra um PostgreSQL real.
-//! Defina OXID_TEST_DATABASE_URL (banco descartável) para rodar; sem ela, os testes são pulados.
+//! Defina OXID_TEST_DATABASE_URL (banco descartável) para rodar; sem ela, os testes falham.
 
 use futures_util::{SinkExt, StreamExt};
 use oxid_proto::{
@@ -20,11 +20,10 @@ const LK_SECRET: &str = "segredo-livekit-de-teste-com-32-chars!!";
 use serde_json::json;
 use tokio_tungstenite::tungstenite::Message;
 
-async fn spawn() -> Option<String> {
-    let Ok(url) = std::env::var("OXID_TEST_DATABASE_URL") else {
-        eprintln!("OXID_TEST_DATABASE_URL não definido; pulando");
-        return None;
-    };
+async fn spawn() -> String {
+    let url = std::env::var("OXID_TEST_DATABASE_URL").expect(
+        "OXID_TEST_DATABASE_URL não definido: suba o banco com `docker compose -f deploy/docker-compose.yml up -d postgres` e defina a variável (ex.: postgres://oxid:oxid@localhost:5432/oxid_test)",
+    );
     let pool = db::connect_and_migrate(&url).await.unwrap();
     let config = Config {
         bind_addr: "127.0.0.1:0".parse().unwrap(),
@@ -46,7 +45,7 @@ async fn spawn() -> Option<String> {
             .await
             .unwrap()
     });
-    Some(format!("127.0.0.1:{}", addr.port()))
+    format!("127.0.0.1:{}", addr.port())
 }
 
 fn unique(prefix: &str) -> String {
@@ -58,7 +57,7 @@ fn unique(prefix: &str) -> String {
 
 #[tokio::test]
 async fn register_login_me_and_gateway() {
-    let Some(addr) = spawn().await else { return };
+    let addr = spawn().await;
     let http = reqwest::Client::new();
     let base = format!("http://{addr}");
     let username = unique("ana_");
@@ -184,7 +183,7 @@ async fn register(http: &reqwest::Client, base: &str, prefix: &str) -> AuthRespo
 
 #[tokio::test]
 async fn servers_channels_invites_and_voice() {
-    let Some(addr) = spawn().await else { return };
+    let addr = spawn().await;
     let http = reqwest::Client::new();
     let base = format!("http://{addr}");
     let ana = register(&http, &base, "ana_").await;
@@ -449,7 +448,7 @@ async fn next_event(ws: &mut Ws) -> ServerEvent {
 
 #[tokio::test]
 async fn text_chat_history_and_realtime() {
-    let Some(addr) = spawn().await else { return };
+    let addr = spawn().await;
     let http = reqwest::Client::new();
     let base = format!("http://{addr}");
     let ana = register(&http, &base, "ana_").await;
@@ -605,5 +604,43 @@ async fn text_chat_history_and_realtime() {
     assert_eq!(
         page.iter().map(|m| m.content.as_str()).collect::<Vec<_>>(),
         ["msg 1", "msg 2"]
+    );
+}
+
+#[tokio::test]
+async fn login_time_does_not_reveal_whether_user_exists() {
+    let addr = spawn().await;
+    let http = reqwest::Client::new();
+    let base = format!("http://{addr}");
+    let username = unique("tim_");
+    let res = http
+        .post(format!("{base}/v1/auth/register"))
+        .json(&json!({"username": username, "email": format!("{username}@exemplo.com"), "password": "senha-forte-123"}))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), 201);
+
+    let time_login = |login: String| {
+        let (http, url) = (http.clone(), format!("{base}/v1/auth/login"));
+        async move {
+            let t = std::time::Instant::now();
+            let res = http
+                .post(url)
+                .json(&json!({"login": login, "password": "errada-errada"}))
+                .send()
+                .await
+                .unwrap();
+            assert_eq!(res.status(), 401);
+            t.elapsed()
+        }
+    };
+    let existing = time_login(username).await;
+    let missing = time_login(unique("nao_existe_")).await;
+    eprintln!("existente={existing:?} inexistente={missing:?}");
+    // Sem a equalização, o inexistente responde sem rodar argon2 (muito mais rápido).
+    assert!(
+        missing * 4 >= existing,
+        "login de usuário inexistente ({missing:?}) bem mais rápido que o de existente ({existing:?})"
     );
 }

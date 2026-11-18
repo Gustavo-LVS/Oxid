@@ -13,9 +13,12 @@ use oxid_proto::{
     message::Message,
     server::{CreateInviteRequest, Invite, Server, ServerDetail},
 };
-use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
 };
 
 use tauri::{AppHandle, Emitter};
@@ -33,6 +36,13 @@ struct Session {
 /// Evento emitido para a interface quando o gateway cai.
 const GATEWAY_EVENT: &str = "gateway";
 const GATEWAY_CLOSED: &str = "gateway-closed";
+const GATEWAY_RECONNECTING: &str = "gateway-reconnecting";
+const GATEWAY_RECONNECTED: &str = "gateway-reconnected";
+
+/// Espera antes da tentativa `attempt` (0, 1, ...): 1 s, 2 s, 4 s... teto de 30 s.
+fn backoff(attempt: u32) -> Duration {
+    Duration::from_secs(1u64 << attempt.min(5)).min(Duration::from_secs(30))
+}
 
 /// Abre o gateway e repassa cada evento do servidor para a interface.
 async fn start_session(app: &AppHandle, session: &Session, api: ApiClient) -> CmdResult<()> {
@@ -41,11 +51,29 @@ async fn start_session(app: &AppHandle, session: &Session, api: ApiClient) -> Cm
         .await
         .map_err(|e| e.to_string())?;
     let app = app.clone();
+    let base = api.base_url().to_string();
     let task = tokio::spawn(async move {
-        while let Some(ev) = gw.events.recv().await {
-            let _ = app.emit(GATEWAY_EVENT, ev);
+        loop {
+            while let Some(ev) = gw.events.recv().await {
+                let _ = app.emit(GATEWAY_EVENT, ev);
+            }
+            // Conexão caiu: reconecta com espera crescente até voltar (logout aborta a tarefa).
+            let _ = app.emit(GATEWAY_RECONNECTING, ());
+            let mut attempt = 0;
+            gw = loop {
+                tokio::time::sleep(backoff(attempt)).await;
+                match gateway::connect(&base, &token).await {
+                    Ok(g) => break g,
+                    // Servidor recusou o token: reconectar não adianta, a UI manda logar de novo.
+                    Err(gateway::GatewayError::InvalidSession(_)) => {
+                        let _ = app.emit(GATEWAY_CLOSED, ());
+                        return;
+                    }
+                    Err(_) => attempt += 1,
+                }
+            };
+            let _ = app.emit(GATEWAY_RECONNECTED, ());
         }
-        let _ = app.emit(GATEWAY_CLOSED, ());
     });
     if let Some(old) = session.gateway.lock().await.replace(task) {
         old.abort();
@@ -246,13 +274,23 @@ fn ptt_shortcut_label() -> String {
 
 /// Reinicia o app para aplicar a atualização já baixada.
 #[tauri::command]
-fn restart_to_update(app: AppHandle) {
+fn restart_to_update(app: AppHandle, state: tauri::State<'_, updater::PendingUpdate>) {
+    let pending = state.0.lock().unwrap().take();
+    if let Some((update, bytes)) = pending {
+        // No Windows, `install` encerra o app ao abrir o instalador.
+        if let Err(e) = update.install(bytes) {
+            eprintln!("falha ao instalar atualização: {e}");
+        }
+    }
     app.restart();
 }
 
 #[tauri::command]
 fn pending_update(state: tauri::State<'_, updater::PendingUpdate>) -> Option<updater::UpdateReady> {
-    state.0.lock().unwrap().clone()
+    let pending = state.0.lock().unwrap();
+    pending
+        .as_ref()
+        .map(|(u, _)| updater::UpdateReady::new(&u.version))
 }
 
 #[tauri::command]
@@ -320,4 +358,17 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("falha ao iniciar o Oxid");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn backoff_dobra_ate_o_teto() {
+        let s: Vec<u64> = [0, 1, 2, 3, 4, 5, 6, 100]
+            .map(|a| backoff(a).as_secs())
+            .into();
+        assert_eq!(s, [1, 2, 4, 8, 16, 30, 30, 30]);
+    }
 }
