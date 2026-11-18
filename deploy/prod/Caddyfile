@@ -1,0 +1,6 @@
+# HTTPS automático (Let's Encrypt) para a API e a sinalização do LiveKit.
+{$OXID_DOMAIN} {
+	@livekit path /rtc* /twirp*
+	reverse_proxy @livekit livekit:7880
+	reverse_proxy api:8080
+}

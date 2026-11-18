@@ -9,6 +9,9 @@ use livekit::{
 use oxid_proto::voice::VoiceTokenResponse;
 use tokio::sync::mpsc::UnboundedReceiver;
 
+pub use livekit;
+pub use oxid_client_audio;
+
 pub const SAMPLE_RATE: u32 = 48_000;
 pub const CHANNELS: u32 = 1;
 

@@ -50,8 +50,10 @@ jobs:
     runs-on: ${{ matrix.platform }}
     env:
       OXID_CHANNEL: ${{ needs.channel.outputs.name }}
-      OXID_UPDATE_BASE: ${{ vars.OXID_UPDATE_BASE }}
-      OXID_UPDATER_PUBKEY: ${{ vars.OXID_UPDATER_PUBKEY }}
+      # Sem a variável, o app busca o latest.json do último release do GitHub (exige repositório público).
+      OXID_UPDATE_BASE: ${{ vars.OXID_UPDATE_BASE || format('https://github.com/{0}/releases/latest/download/latest.json', github.repository) }}
+      # Chave pública (não é segredo); a privada fica no segredo TAURI_SIGNING_PRIVATE_KEY.
+      OXID_UPDATER_PUBKEY: ${{ vars.OXID_UPDATER_PUBKEY || 'dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDhDNjhCQkRDMEU0OTQxQjYKUldTMlFVa08zTHRvakd6ZnJMSmRxTmErSUVkd1VhdUxQWTcyMTJONXhnSC9wcTlXWHFjelp2QTEK' }}
       HAS_WIN_CERT: ${{ secrets.WINDOWS_CERTIFICATE != '' }}
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +64,12 @@ jobs:
       - name: Dependências do Linux
         if: startsWith(matrix.platform, 'ubuntu')
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev libasound2-dev
+      - name: clang 21 (o libwebrtc do LiveKit exige no Linux)
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh && sudo bash /tmp/llvm.sh 21
+          echo "CC=clang-21" >> "$GITHUB_ENV"
+          echo "CXX=clang++-21" >> "$GITHUB_ENV"
       - name: Certificado do Windows
         if: matrix.platform == 'windows-latest' && env.HAS_WIN_CERT == 'true'
         env:

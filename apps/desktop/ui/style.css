@@ -42,3 +42,10 @@ dialog menu { display: flex; gap: 8px; justify-content: flex-end; padding: 0; ma
 .ptt.on { background: #2e7d32; color: white; }
 .ptt kbd { font: inherit; border: 1px solid #555; border-radius: 3px; padding: 0 4px; }
 .update-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; gap: 12px; justify-content: center; align-items: center; padding: 6px; background: #2e7d32; color: white; }
+.voice-panel { margin-top: 12px; background: var(--rail); border-radius: 6px; padding: 8px; display: grid; gap: 6px; font-size: 12px; }
+.voice-panel p { margin: 0; color: #66bb6a; font-weight: 600; }
+.voice-panel li { cursor: default; padding: 2px 6px; border: 1px solid transparent; }
+.voice-panel li.speaking { border-color: #66bb6a; color: var(--text); }
+.voice-panel label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+.voice-panel input[type=checkbox] { width: auto; }
+.voice-actions { display: flex; gap: 6px; }

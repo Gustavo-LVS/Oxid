@@ -25,11 +25,13 @@ function setRegistering(on) {
   $("auth-toggle").textContent = registering ? "Já tenho conta" : "Criar conta";
 }
 $("auth-toggle").addEventListener("click", () => setRegistering(!registering));
+try { $("auth-form").api_url.value = localStorage.getItem("api_url") || $("auth-form").api_url.value; } catch {}
 
 $("auth-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const f = ev.target;
   $("auth-error").textContent = "";
+  try { localStorage.setItem("api_url", f.api_url.value); } catch {}
   try {
     const res = registering
       ? await invoke("register", { apiUrl: f.api_url.value, username: f.login.value, email: f.email.value, password: f.password.value })
@@ -46,6 +48,7 @@ $("auth-form").addEventListener("submit", async (ev) => {
 
 $("logout").addEventListener("click", async () => {
   await invoke("logout");
+  voiceClosed();
   currentServer = null;
   closeChannel();
   setRegistering(false);
@@ -88,7 +91,7 @@ async function openServer(id) {
   voice.replaceChildren();
   for (const c of currentServer.channels) {
     if (c.kind === "text") text.append(li("# " + c.name, () => openChannel(c)));
-    else voice.append(li("🔊 " + c.name, () => setStatus(`Canal de voz ${c.name}: a voz entra no app depois da prova de conceito.`)));
+    else voice.append(li("🔊 " + c.name, () => joinVoice(c)));
   }
   setStatus("");
   const firstText = currentServer.channels.find((c) => c.kind === "text");
@@ -196,6 +199,53 @@ $("join-form").addEventListener("submit", async (ev) => {
     setStatus(e);
   }
 });
+
+// ---- Voz ----
+let muted = false;
+
+async function joinVoice(c) {
+  setStatus(`Conectando em ${c.name}...`);
+  try {
+    await invoke("join_voice", { channelId: c.id });
+    $("voice-title").textContent = "🔊 " + c.name;
+    $("voice-panel").hidden = false;
+    setStatus("");
+  } catch (e) {
+    setStatus(e);
+  }
+}
+
+function voiceClosed() {
+  $("voice-panel").hidden = true;
+  $("voice-members").replaceChildren();
+}
+
+window.__TAURI__.event.listen("voice", ({ payload }) => {
+  const list = $("voice-members");
+  list.replaceChildren(...payload.members.map((m) => {
+    const el = li(m.name);
+    el.classList.toggle("speaking", payload.speaking.includes(m.id));
+    return el;
+  }));
+});
+window.__TAURI__.event.listen("voice-closed", () => { voiceClosed(); setStatus("A conexão de voz caiu."); });
+
+$("voice-leave").addEventListener("click", async () => { await invoke("leave_voice"); voiceClosed(); });
+$("voice-mute").addEventListener("click", async () => {
+  muted = !muted;
+  await invoke("set_muted", { muted });
+  $("voice-mute").textContent = muted ? "Desmutar" : "Mutar";
+});
+$("voice-ptt").addEventListener("change", (ev) => {
+  invoke("set_push_to_talk", { on: ev.target.checked });
+  try { localStorage.setItem("voice_ptt", ev.target.checked ? "1" : ""); } catch {}
+});
+try {
+  if (localStorage.getItem("voice_ptt")) {
+    $("voice-ptt").checked = true;
+    invoke("set_push_to_talk", { on: true });
+  }
+} catch {}
 
 // ---- Push-to-talk (atalho global registrado no lado Rust) ----
 invoke("ptt_shortcut_label").then((k) => ($("ptt-key").textContent = k));

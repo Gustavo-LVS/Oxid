@@ -1,0 +1,10 @@
+# As chaves vêm de LIVEKIT_KEYS (docker-compose); a sinalização passa pelo Caddy.
+port: 7880
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50100
+  # Anuncia o IP público da VM para os clientes (necessário atrás de NAT/nuvem).
+  use_external_ip: true
+logging:
+  level: info

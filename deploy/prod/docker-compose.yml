@@ -1,0 +1,50 @@
+# Produção pequena (você + amigos) numa única VM: API, Postgres, LiveKit e
+# Caddy (HTTPS automático). Uso: veja deploy/prod/README.md.
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: oxid
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+      POSTGRES_DB: oxid
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  api:
+    build: { context: ../.., dockerfile: Dockerfile }
+    restart: unless-stopped
+    depends_on: [postgres]
+    environment:
+      DATABASE_URL: postgres://oxid:${POSTGRES_PASSWORD}@postgres:5432/oxid
+      OXID_JWT_SECRET: ${OXID_JWT_SECRET:?defina no .env}
+      OXID_BIND_ADDR: 0.0.0.0:8080
+      RUST_LOG: info
+      # O app conecta na voz pelo mesmo domínio (Caddy repassa /rtc ao LiveKit).
+      LIVEKIT_URL: wss://${OXID_DOMAIN:?defina no .env}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?defina no .env}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?defina no .env}
+
+  livekit:
+    image: livekit/livekit-server:v1.13
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
+    volumes: [./livekit.yaml:/etc/livekit.yaml:ro]
+    ports:
+      - "7881:7881/tcp"                 # WebRTC por TCP (redes que bloqueiam UDP)
+      - "50000-50100:50000-50100/udp"   # WebRTC por UDP (o caminho normal da voz)
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      OXID_DOMAIN: ${OXID_DOMAIN}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+
+volumes:
+  pgdata:
+  caddy_data:
