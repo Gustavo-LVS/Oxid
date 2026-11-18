@@ -43,7 +43,30 @@ async fn main() -> anyhow::Result<()> {
 
     let mut api = ApiClient::new(api_url);
     let me = api.login(&login, &password).await?;
-    let creds = api.voice_token(&room).await?;
+    let detail = match env::var("OXID_INVITE") {
+        Ok(code) => {
+            let server = api.accept_invite(&code).await?;
+            api.server(server.id).await?
+        }
+        Err(_) => {
+            let detail = api.create_server("voice-poc").await?;
+            let invite = api
+                .create_invite(detail.server.id, &Default::default())
+                .await?;
+            println!(
+                "convite para o segundo cliente: OXID_INVITE={}",
+                invite.code
+            );
+            detail
+        }
+    };
+    let room = detail
+        .channels
+        .iter()
+        .find(|c| c.kind == ChannelKind::Voice)
+        .ok_or_else(|| anyhow::anyhow!("o servidor não tem canal de voz"))?
+        .id;
+    let creds = api.voice_token(room).await?;
     println!(
         "{} entrando na sala {room} em {}",
         me.user.username, creds.url

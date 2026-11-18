@@ -10,6 +10,8 @@
 #[cfg(feature = "capture")]
 pub mod capture;
 pub mod frames;
+#[cfg(feature = "capture")]
+pub mod playback;
 pub mod processor;
 
 /// Taxa de amostragem interna (a mesma do Opus e do RNNoise).

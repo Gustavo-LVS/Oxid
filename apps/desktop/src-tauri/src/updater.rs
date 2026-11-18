@@ -34,6 +34,10 @@ pub fn endpoint() -> Option<Url> {
 }
 
 fn manifest_url(base: &str, channel: &str) -> Option<Url> {
+    // URL direta do manifesto (ex.: o latest.json do GitHub Releases): sem canal.
+    if base.ends_with(".json") {
+        return Url::parse(base).ok();
+    }
     Url::parse(&format!(
         "{}/{channel}/latest.json",
         base.trim_end_matches('/')
@@ -86,5 +90,7 @@ mod tests {
     fn manifest_url_per_channel() {
         let u = super::manifest_url("https://downloads.oxid.app/", "beta").unwrap();
         assert_eq!(u.as_str(), "https://downloads.oxid.app/beta/latest.json");
+        let gh = "https://github.com/o/r/releases/latest/download/latest.json";
+        assert_eq!(super::manifest_url(gh, "beta").unwrap().as_str(), gh);
     }
 }

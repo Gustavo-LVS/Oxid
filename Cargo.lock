@@ -3773,6 +3773,7 @@ dependencies = [
 name = "oxid-desktop"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "oxid-client-core",
  "oxid-proto",
  "serde",

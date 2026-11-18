@@ -2,6 +2,7 @@
 //! falam com a API usando o `client-core`. O token fica só no lado Rust.
 
 mod updater;
+mod voice;
 
 use oxid_client_core::{
     api::{ApiClient, ClientError},
@@ -108,7 +109,11 @@ async fn register(
 }
 
 #[tauri::command]
-async fn logout(session: tauri::State<'_, Session>) -> CmdResult<()> {
+async fn logout(
+    session: tauri::State<'_, Session>,
+    voice: tauri::State<'_, voice::Voice>,
+) -> CmdResult<()> {
+    voice.leave().await;
     *session.api.lock().await = None;
     if let Some(task) = session.gateway.lock().await.take() {
         task.abort();
@@ -192,8 +197,40 @@ async fn send_message(
         .map_err(msg)
 }
 
+#[tauri::command]
+async fn join_voice(
+    app: AppHandle,
+    session: tauri::State<'_, Session>,
+    voice: tauri::State<'_, voice::Voice>,
+    ptt: tauri::State<'_, PushToTalk>,
+    channel_id: Uuid,
+) -> CmdResult<()> {
+    let creds = client(&session)
+        .await?
+        .voice_token(channel_id)
+        .await
+        .map_err(msg)?;
+    voice.join(app, creds, channel_id, ptt.0.clone()).await
+}
+
+#[tauri::command]
+async fn leave_voice(voice: tauri::State<'_, voice::Voice>) -> CmdResult<()> {
+    voice.leave().await;
+    Ok(())
+}
+
+#[tauri::command]
+fn set_muted(voice: tauri::State<'_, voice::Voice>, muted: bool) {
+    voice.muted.store(muted, Ordering::Relaxed);
+}
+
+#[tauri::command]
+fn set_push_to_talk(voice: tauri::State<'_, voice::Voice>, on: bool) {
+    voice.use_ptt.store(on, Ordering::Relaxed);
+}
+
 /// Estado do push-to-talk. O `AudioProcessor` (client-audio) lê este mesmo
-/// `AtomicBool` quando a voz estiver no app.
+/// `AtomicBool` quando o modo push-to-talk está ligado.
 #[derive(Default, Clone)]
 pub struct PushToTalk(pub Arc<AtomicBool>);
 
@@ -260,7 +297,12 @@ pub fn run() {
         .manage(ptt)
         .manage(updater::PendingUpdate::default())
         .manage(Session::default())
+        .manage(voice::Voice::default())
         .invoke_handler(tauri::generate_handler![
+            join_voice,
+            leave_voice,
+            set_muted,
+            set_push_to_talk,
             login,
             register,
             logout,

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- O macOS só libera o microfone com esta explicação. -->
+  <key>NSMicrophoneUsageDescription</key>
+  <string>O Oxid usa o microfone nos canais de voz.</string>
+</dict>
+</plist>

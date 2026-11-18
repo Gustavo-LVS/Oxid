@@ -11,6 +11,8 @@ use crate::{FRAME_SAMPLES, frames::FrameAssembler};
 pub enum CaptureError {
     #[error("nenhum microfone encontrado")]
     NoDevice,
+    #[error("nenhum alto-falante ou fone encontrado")]
+    NoOutputDevice,
     #[error("formato de amostra não suportado: {0:?}")]
     UnsupportedFormat(SampleFormat),
     #[error("erro do dispositivo de áudio: {0}")]
