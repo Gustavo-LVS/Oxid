@@ -41,11 +41,9 @@ impl FrameAssembler {
             self.pos -= 1.0;
             self.prev = cur;
         }
-        let mut frame = [0f32; FRAME_SAMPLES];
         let full = self.pending.len() / FRAME_SAMPLES * FRAME_SAMPLES;
-        for f in self.pending[..full].chunks_exact(FRAME_SAMPLES) {
-            frame.copy_from_slice(f);
-            on_frame(&frame);
+        for frame in self.pending[..full].as_chunks::<FRAME_SAMPLES>().0 {
+            on_frame(frame);
         }
         self.pending.drain(..full);
     }
