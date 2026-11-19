@@ -85,7 +85,3 @@ Sucesso: cada terminal mostra `recebendo áudio de ...` e um volume RMS por volt
 ```bash
 OXID_TEST_DATABASE_URL=postgres://oxid:oxid@localhost:5432/oxid_test cargo test --workspace
 ```
-
-## Planejamento
-
-O projeto usa a skill `ub-workflow`. Comece por `.ub-workflows/status.md`; a visão está em `.ub-workflows/vision.md` e a pesquisa de stack em `.ub-workflows/source-packs/`.
