@@ -22,3 +22,13 @@ apps/desktop/src-tauri/tauri.windows.conf.json
 Thumbs.db
 .vscode/
 .idea/
+
+# Ferramentas de agente e planejamento: ficam só na máquina, fora do repositório
+.agents/
+.claude/
+.ub-workflows/
+skills-lock.json
+CLAUDE.md
+AGENTS.md
+SOURCE_ATLAS.md
+docs/

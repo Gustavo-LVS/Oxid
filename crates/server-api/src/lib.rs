@@ -12,9 +12,14 @@ use axum::{
 };
 use oxid_server_common::{auth::TokenKeys, config::Config};
 use sqlx::PgPool;
+use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 pub use state::AppState;
+
+/// Vagas simultâneas de argon2: 4 x ~19 MiB cabem na VM de produção.
+const ARGON2_PERMITS: usize = 4;
 
 pub fn app(pool: PgPool, config: &Config) -> Router {
     let state = AppState {
@@ -22,6 +27,7 @@ pub fn app(pool: PgPool, config: &Config) -> Router {
         tokens: TokenKeys::new(&config.jwt_secret, config.token_ttl_secs),
         livekit: config.livekit.clone(),
         hub: Default::default(),
+        argon2_permits: Arc::new(Semaphore::new(ARGON2_PERMITS)),
     };
     Router::new()
         .route("/health", get(|| async { "ok" }))

@@ -8,7 +8,6 @@ Sistema de chamadas em grupo para gamers e trabalho. Cliente desktop em Tauri 2,
 crates/
   proto/          tipos compartilhados (DTOs, eventos do gateway)
   server-api/     REST + WebSocket gateway (axum)
-  server-sfu/     reservado para o SFU próprio (str0m)
   server-common/  config, banco, auth (argon2 + JWT), telemetria
   client-core/    lógica do cliente
   client-audio/   captura, Opus, supressão de ruído, eco
@@ -86,7 +85,3 @@ Sucesso: cada terminal mostra `recebendo áudio de ...` e um volume RMS por volt
 ```bash
 OXID_TEST_DATABASE_URL=postgres://oxid:oxid@localhost:5432/oxid_test cargo test --workspace
 ```
-
-## Planejamento
-
-O projeto usa a skill `ub-workflow`. Comece por `.ub-workflows/status.md`; a visão está em `.ub-workflows/vision.md` e a pesquisa de stack em `.ub-workflows/source-packs/`.

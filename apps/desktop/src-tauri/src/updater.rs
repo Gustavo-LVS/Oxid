@@ -15,7 +15,7 @@ use serde::Serialize;
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter, Manager, Url};
-use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_updater::{Update, UpdaterExt};
 
 const CHECK_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
 
@@ -50,10 +50,18 @@ pub struct UpdateReady {
     version: String,
 }
 
-/// Atualização já baixada, esperando reinício. Guardada para a interface
-/// consultar ao carregar (o evento pode sair antes de ela escutar).
+impl UpdateReady {
+    pub fn new(version: &str) -> Self {
+        Self {
+            version: version.to_string(),
+        }
+    }
+}
+
+/// Atualização já baixada (não instalada), esperando reinício. Guardada para a
+/// interface consultar ao carregar (o evento pode sair antes de ela escutar).
 #[derive(Default)]
-pub struct PendingUpdate(pub Mutex<Option<UpdateReady>>);
+pub struct PendingUpdate(pub Mutex<Option<(Update, Vec<u8>)>>);
 
 /// Loop de verificação; roda em segundo plano durante toda a vida do app.
 pub async fn run(app: AppHandle) {
@@ -70,16 +78,18 @@ pub async fn run(app: AppHandle) {
 }
 
 async fn check_once(app: &AppHandle, endpoint: Url) -> tauri_plugin_updater::Result<()> {
+    if app.state::<PendingUpdate>().0.lock().unwrap().is_some() {
+        return Ok(());
+    }
     let updater = app.updater_builder().endpoints(vec![endpoint])?.build()?;
     let Some(update) = updater.check().await? else {
         return Ok(());
     };
-    // Baixa e instala; no Windows o instalador aplica ao reiniciar.
-    update.download_and_install(|_, _| {}, || {}).await?;
-    let ready = UpdateReady {
-        version: update.version.clone(),
-    };
-    *app.state::<PendingUpdate>().0.lock().unwrap() = Some(ready.clone());
+    // Só baixa: no Windows `install` abre o instalador e encerra o app na hora,
+    // então a instalação fica para `restart_to_update` (não no meio de uma chamada).
+    let bytes = update.download(|_, _| {}, || {}).await?;
+    let ready = UpdateReady::new(&update.version);
+    *app.state::<PendingUpdate>().0.lock().unwrap() = Some((update, bytes));
     let _ = app.emit("update-ready", ready);
     Ok(())
 }

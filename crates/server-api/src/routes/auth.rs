@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use axum::{Json, extract::State, http::StatusCode};
 use oxid_proto::auth::{AuthResponse, LoginRequest, RegisterRequest};
 use oxid_server_common::auth::{hash_password, verify_password};
@@ -5,6 +7,26 @@ use uuid::Uuid;
 
 use super::users::UserRow;
 use crate::{error::ApiError, state::AppState};
+
+// Hash fixo para gastar o mesmo tempo de argon2 quando o usuário não existe.
+static DUMMY_HASH: LazyLock<String> = LazyLock::new(|| {
+    hash_password("senha-inexistente").expect("hash de uma constante não deve falhar")
+});
+
+/// Roda argon2 fora do runtime, com no máximo `ARGON2_PERMITS` ao mesmo tempo.
+async fn run_argon2<T: Send + 'static>(
+    state: &AppState,
+    f: impl FnOnce() -> T + Send + 'static,
+) -> Result<T, ApiError> {
+    let _permit = state
+        .argon2_permits
+        .acquire()
+        .await
+        .map_err(anyhow::Error::from)?;
+    Ok(tokio::task::spawn_blocking(f)
+        .await
+        .map_err(anyhow::Error::from)?)
+}
 
 fn validate(req: &RegisterRequest) -> Result<(), ApiError> {
     let u = req.username.trim();
@@ -35,9 +57,8 @@ pub async fn register(
 ) -> Result<(StatusCode, Json<AuthResponse>), ApiError> {
     validate(&req)?;
     let password = req.password.clone();
-    let hash = tokio::task::spawn_blocking(move || hash_password(&password))
-        .await
-        .map_err(anyhow::Error::from)?
+    let hash = run_argon2(&state, move || hash_password(&password))
+        .await?
         .map_err(anyhow::Error::from)?;
 
     let row = sqlx::query_as::<_, UserRow>(
@@ -90,12 +111,12 @@ pub async fn login(
     .await?;
 
     let Some(row) = row else {
+        // Mesmo custo do caso "senha errada", para o tempo não revelar quem existe.
+        run_argon2(&state, move || verify_password(&req.password, &DUMMY_HASH)).await?;
         return Err(ApiError::InvalidCredentials);
     };
     let (password, hash) = (req.password, row.password_hash.clone());
-    let ok = tokio::task::spawn_blocking(move || verify_password(&password, &hash))
-        .await
-        .map_err(anyhow::Error::from)?;
+    let ok = run_argon2(&state, move || verify_password(&password, &hash)).await?;
     if !ok {
         return Err(ApiError::InvalidCredentials);
     }
